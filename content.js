@@ -56,8 +56,15 @@ function interceptSubtitleRequest() {
     copyButton.style.marginRight = '10px';
     copyButton.onclick = () => copySubtitlesToClipboard(subtitles, copyButton, showTimestamp);
   
+    // 创建定位到当前视频字幕的位置按钮
+    const focusButton = document.createElement('button');
+    focusButton.textContent = '🎯';
+    focusButton.style.marginRight = '10px';
+    focusButton.onclick = () => focusCurrentSubtitle(subtitles, subtitleContainer);
+  
     buttonBar.appendChild(toggleTimestampButton);
     buttonBar.appendChild(copyButton);
+    buttonBar.appendChild(focusButton);
     subtitleContainer.appendChild(buttonBar);
   
     let showTimestamp = true;
@@ -113,6 +120,39 @@ function interceptSubtitleRequest() {
       setTimeout(() => {
         button.textContent = '📋 复制';
       }, 2000);
+    }
+  
+    function focusCurrentSubtitle(subtitles, subtitleContainer) {
+      const video = document.querySelector('video');
+      if (!video) return;
+  
+      const currentTime = video.currentTime;
+      if (!subtitleContainer) return;
+  
+      let closestSubtitle = null;
+      let closestTimeDiff = Infinity;
+  
+      subtitles.forEach(subtitle => {
+        const timeDiff = Math.abs(subtitle.from - currentTime);
+        if (timeDiff < closestTimeDiff) {
+          closestTimeDiff = timeDiff;
+          closestSubtitle = subtitle;
+        }
+      });
+  
+      if (closestSubtitle) {
+        const subtitleElements = subtitleContainer.querySelectorAll('p');
+        subtitleElements.forEach((element, index) => {
+          const timeElement = element.querySelector('span');
+          if (timeElement && timeElement.textContent === formatTime(closestSubtitle.from)) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.style.backgroundColor = '#ffffcc'; // 视觉变化
+            setTimeout(() => {
+              element.style.backgroundColor = ''; // 恢复原样
+            }, 2000);
+          }
+        });
+      }
     }
   }
   
