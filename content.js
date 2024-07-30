@@ -1,3 +1,4 @@
+// 拦截字幕请求
 function interceptSubtitleRequest() {
     var originalFetch = window.fetch;
     window.fetch = function(url, init) {
@@ -12,51 +13,7 @@ function interceptSubtitleRequest() {
     };
   }
   
-  function openSubtitle() {
-    var subtitleButton = document.querySelector('[aria-label="字幕"] [class="bpx-common-svg-icon"]');
-    if (subtitleButton) {
-      var subtitleState = document.querySelector('div[class="bpx-player-ctrl-subtitle-language-item bpx-state-active"]');
-      if (subtitleState) {
-        var subtitleName = subtitleState.innerText;
-        var stateNum = Number(subtitleName.indexOf('自动'));
-        if (stateNum !== -1) {
-          if (document.querySelectorAll('svg[preserveAspectRatio="xMidYMid meet"] > defs > filter').length === 3) {
-            subtitleButton.click();
-            console.log('字幕已开启');
-          }
-        } else {
-          console.log('字幕不为AI生成,跳过该视频');
-        }
-      } else {
-        console.log('该视频无字幕');
-      }
-    }
-  }
-  
-  function checkVideo() {
-    if (document.querySelector('video[crossorigin="anonymous"]').readyState === 4) {
-      console.log('视频加载完毕');
-      var timeout = setTimeout(function() {
-        console.log('字幕加载超时,当前视频可能无字幕');
-      }, 5000);
-      var interval = setInterval(function() {
-        openSubtitle();
-        if (document.querySelectorAll('svg[preserveAspectRatio="xMidYMid meet"] > defs > filter').length === 3) {
-          clearInterval(interval);
-          clearTimeout(timeout);
-        }
-      }, 200);
-    }
-  }
-  
   interceptSubtitleRequest();
-  
-  var run = setInterval(function() {
-    checkVideo();
-    if (document.querySelectorAll('svg[preserveAspectRatio="xMidYMid meet"] > defs > filter').length === 3) {
-      clearInterval(run);
-    }
-  }, 200);
   
   // 监听来自 background.js 的消息
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -77,40 +34,33 @@ function interceptSubtitleRequest() {
     subtitleContainer.style.marginBottom = '10px';
     subtitleContainer.style.maxHeight = '300px';
     subtitleContainer.style.overflowY = 'auto';
-    subtitleContainer.style.position = 'relative'; // 确保按钮栏不随滚动条移动
+    subtitleContainer.style.position = 'relative';
   
     // 创建按钮栏
     const buttonBar = document.createElement('div');
     buttonBar.style.marginBottom = '10px';
-    buttonBar.style.position = 'sticky'; // 使按钮栏不随滚动条移动
-    buttonBar.style.top = '0'; // 使按钮栏固定在顶部
-    buttonBar.style.background = 'white'; // 确保按钮栏背景色与容器一致
-    buttonBar.style.zIndex = '1'; // 确保按钮栏在内容之上
-  
-    // 创建全文复制按钮
-    const copyButton = document.createElement('button');
-    copyButton.textContent = '📋';
-    copyButton.style.marginRight = '10px';
-    copyButton.onclick = () => copySubtitlesToClipboard(subtitles, copyButton, showTimestamp);
-  
-    // 创建定位到当前视频字幕的位置按钮
-    const focusButton = document.createElement('button');
-    focusButton.textContent = '🎯';
-    focusButton.style.marginRight = '10px';
-    focusButton.onclick = () => focusCurrentSubtitle(subtitles, subtitleContainer);
+    buttonBar.style.position = 'sticky';
+    buttonBar.style.top = '0';
+    buttonBar.style.background = 'white';
+    buttonBar.style.zIndex = '1';
   
     // 创建显示/隐藏时间戳按钮
     const toggleTimestampButton = document.createElement('button');
-    toggleTimestampButton.textContent = '⏱️';
+    toggleTimestampButton.textContent = '⏱️ 显示/隐藏时间戳';
     toggleTimestampButton.style.marginRight = '10px';
     toggleTimestampButton.onclick = () => toggleTimestamp(subtitleContainer, toggleTimestampButton);
   
-    let showTimestamp = true; // 默认显示时间戳
+    // 创建复制按钮
+    const copyButton = document.createElement('button');
+    copyButton.textContent = '📋 复制';
+    copyButton.style.marginRight = '10px';
+    copyButton.onclick = () => copySubtitlesToClipboard(subtitles, copyButton, showTimestamp);
   
-    buttonBar.appendChild(copyButton);
-    buttonBar.appendChild(focusButton);
     buttonBar.appendChild(toggleTimestampButton);
+    buttonBar.appendChild(copyButton);
     subtitleContainer.appendChild(buttonBar);
+  
+    let showTimestamp = true;
   
     // 添加逐字稿内容
     subtitles.forEach(subtitle => {
@@ -120,7 +70,6 @@ function interceptSubtitleRequest() {
       timeElement.style.color = '#00b8f6';
       timeElement.style.marginRight = '10px';
       timeElement.style.cursor = 'pointer';
-      timeElement.style.display = 'inline-block'; // 确保时间戳可以隐藏
       timeElement.onclick = () => jumpToTime(subtitle.from);
   
       const p = document.createElement('p');
@@ -131,31 +80,40 @@ function interceptSubtitleRequest() {
   
     // 插入到弹幕列表上方
     danmukuBox.insertBefore(subtitleContainer, danmukuBox.firstChild);
-  }
   
-  function copySubtitlesToClipboard(subtitles, button, showTimestamp) {
-    const textToCopy = subtitles.map(subtitle => {
-      if (showTimestamp) {
-        return `${formatTime(subtitle.from)} ${subtitle.content}`;
-      } else {
-        return subtitle.content;
-      }
-    }).join('\n');
+    function toggleTimestamp(subtitleContainer, toggleTimestampButton) {
+      const timeElements = subtitleContainer.querySelectorAll('span');
+      showTimestamp = !showTimestamp;
+      timeElements.forEach(element => {
+        element.style.display = showTimestamp ? 'inline-block' : 'none';
+      });
+      toggleTimestampButton.textContent = showTimestamp ? '⏱️ 隐藏时间戳' : '⏱️ 显示时间戳';
+    }
   
-    const tempTextArea = document.createElement('textarea');
-    tempTextArea.value = textToCopy;
-    document.body.appendChild(tempTextArea);
-    tempTextArea.select();
-    document.execCommand('copy');
-    document.body.removeChild(tempTextArea);
+    function copySubtitlesToClipboard(subtitles, button, showTimestamp) {
+      const textToCopy = subtitles.map(subtitle => {
+        if (showTimestamp) {
+          return `${formatTime(subtitle.from)} ${subtitle.content}`;
+        } else {
+          return subtitle.content;
+        }
+      }).join('\n');
   
-    // 更改按钮文本为勾的emoji
-    button.textContent = '✔️';
+      const tempTextArea = document.createElement('textarea');
+      tempTextArea.value = textToCopy;
+      document.body.appendChild(tempTextArea);
+      tempTextArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempTextArea);
   
-    // 恢复按钮文本
-    setTimeout(() => {
-      button.textContent = '📋';
-    }, 2000);
+      // 更改按钮文本为勾的emoji
+      button.textContent = '✔️ 复制成功';
+  
+      // 恢复按钮文本
+      setTimeout(() => {
+        button.textContent = '📋 复制';
+      }, 2000);
+    }
   }
   
   function formatTime(seconds) {
@@ -170,48 +128,5 @@ function interceptSubtitleRequest() {
     if (video) {
       video.currentTime = seconds;
     }
-  }
-  
-  function focusCurrentSubtitle(subtitles, subtitleContainer) {
-    const video = document.querySelector('video');
-    if (!video) return;
-  
-    const currentTime = video.currentTime;
-    if (!subtitleContainer) return;
-  
-    let closestSubtitle = null;
-    let closestTimeDiff = Infinity;
-  
-    subtitles.forEach(subtitle => {
-      const timeDiff = Math.abs(subtitle.from - currentTime);
-      if (timeDiff < closestTimeDiff) {
-        closestTimeDiff = timeDiff;
-        closestSubtitle = subtitle;
-      }
-    });
-  
-    if (closestSubtitle) {
-      const subtitleElements = subtitleContainer.querySelectorAll('p');
-      subtitleElements.forEach((element, index) => {
-        const timeElement = element.querySelector('span');
-        if (timeElement && timeElement.textContent === formatTime(closestSubtitle.from)) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          element.style.backgroundColor = '#ffffcc'; // 视觉变化
-          setTimeout(() => {
-            element.style.backgroundColor = ''; // 恢复原样
-          }, 2000);
-        }
-      });
-    }
-  }
-  
-  function toggleTimestamp(subtitleContainer, toggleTimestampButton) {
-    const timeElements = subtitleContainer.querySelectorAll('span');
-    showTimestamp = !showTimestamp;
-    timeElements.forEach(element => {
-      element.style.display = showTimestamp ? 'inline-block' : 'none';
-    });
-    // 更新按钮文本以反映当前状态
-    toggleTimestampButton.textContent = showTimestamp ? '⏱️' : '⏱️';
   }
   
