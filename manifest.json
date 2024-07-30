@@ -1,0 +1,17 @@
+  {
+    "manifest_version": 3,
+    "name": "B站AI字幕响应捕获",
+    "version": "0.2",
+    "description": "捕获B站AI字幕请求的响应",
+    "permissions": ["webRequest", "activeTab", "scripting"],
+    "host_permissions": ["<all_urls>"],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+      {
+        "matches": ["https://www.bilibili.com/video/*"],
+        "js": ["content.js"]
+      }
+    ]
+}
