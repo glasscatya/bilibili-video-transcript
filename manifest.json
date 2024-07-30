@@ -1,7 +1,7 @@
   {
     "manifest_version": 3,
     "name": "B站AI字幕响应捕获",
-    "version": "0.3",
+    "version": "0.35",
     "description": "捕获B站AI字幕请求的响应",
     "permissions": ["webRequest", "activeTab", "scripting"],
     "host_permissions": ["<all_urls>"],
