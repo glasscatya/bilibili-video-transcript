@@ -1,7 +1,7 @@
   {
     "manifest_version": 3,
     "name": "bilibili视频逐字稿",
-    "version": "0.65",
+    "version": "0.67",
     "description": "将bilibili视频逐字稿显示在您的网页中，以便于快速浏览内容，或是复习记录与回顾。",
     "permissions": ["webRequest", "activeTab", "scripting"],
     "host_permissions": ["<all_urls>"],
