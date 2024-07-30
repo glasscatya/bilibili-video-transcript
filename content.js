@@ -103,7 +103,7 @@ function interceptSubtitleRequest() {
     const toggleTimestampButton = document.createElement('button');
     toggleTimestampButton.textContent = '⏱️';
     toggleTimestampButton.style.marginRight = '10px';
-    toggleTimestampButton.onclick = () => toggleTimestamp(subtitleContainer, showTimestamp);
+    toggleTimestampButton.onclick = () => toggleTimestamp(subtitleContainer, toggleTimestampButton);
   
     let showTimestamp = true; // 默认显示时间戳
   
@@ -205,10 +205,11 @@ function interceptSubtitleRequest() {
     }
   }
   
-  function toggleTimestamp(subtitleContainer, showTimestamp) {
-    showTimestamp = !showTimestamp;
+  function toggleTimestamp(subtitleContainer, toggleTimestampButton) {
     const timeElements = subtitleContainer.querySelectorAll('span');
+    showTimestamp = !showTimestamp;
     timeElements.forEach(element => {
       element.style.display = showTimestamp ? 'inline-block' : 'none';
     });
+    toggleTimestampButton.textContent = showTimestamp ? '⏱️' : '⏱️';
   }
