@@ -77,10 +77,15 @@ function interceptSubtitleRequest() {
     subtitleContainer.style.marginBottom = '10px';
     subtitleContainer.style.maxHeight = '300px';
     subtitleContainer.style.overflowY = 'auto';
+    subtitleContainer.style.position = 'relative'; // 确保按钮栏不随滚动条移动
   
     // 创建按钮栏
     const buttonBar = document.createElement('div');
     buttonBar.style.marginBottom = '10px';
+    buttonBar.style.position = 'sticky'; // 使按钮栏不随滚动条移动
+    buttonBar.style.top = '0'; // 使按钮栏固定在顶部
+    buttonBar.style.background = 'white'; // 确保按钮栏背景色与容器一致
+    buttonBar.style.zIndex = '1'; // 确保按钮栏在内容之上
   
     // 创建全文复制按钮
     const copyButton = document.createElement('button');
@@ -88,13 +93,29 @@ function interceptSubtitleRequest() {
     copyButton.style.marginRight = '10px';
     copyButton.onclick = () => copySubtitlesToClipboard(subtitles, copyButton);
   
+    // 创建定位到当前视频字幕的位置按钮
+    const focusButton = document.createElement('button');
+    focusButton.textContent = '🎯';
+    focusButton.style.marginRight = '10px';
+    focusButton.onclick = () => focusCurrentSubtitle(subtitles);
+  
     buttonBar.appendChild(copyButton);
+    buttonBar.appendChild(focusButton);
     subtitleContainer.appendChild(buttonBar);
   
     // 添加逐字稿内容
     subtitles.forEach(subtitle => {
+      const time = formatTime(subtitle.from);
+      const timeElement = document.createElement('span');
+      timeElement.textContent = time;
+      timeElement.style.color = '#00b8f6';
+      timeElement.style.marginRight = '10px';
+      timeElement.style.cursor = 'pointer';
+      timeElement.onclick = () => jumpToTime(subtitle.from);
+  
       const p = document.createElement('p');
-      p.textContent = subtitle.content;
+      p.appendChild(timeElement);
+      p.appendChild(document.createTextNode(subtitle.content));
       subtitleContainer.appendChild(p);
     });
   
@@ -103,7 +124,7 @@ function interceptSubtitleRequest() {
   }
   
   function copySubtitlesToClipboard(subtitles, button) {
-    const textToCopy = subtitles.map(subtitle => subtitle.content).join('\n');
+    const textToCopy = subtitles.map(subtitle => `${formatTime(subtitle.from)} ${subtitle.content}`).join('\n');
     const tempTextArea = document.createElement('textarea');
     tempTextArea.value = textToCopy;
     document.body.appendChild(tempTextArea);
@@ -118,4 +139,48 @@ function interceptSubtitleRequest() {
     setTimeout(() => {
       button.textContent = '📋';
     }, 2000);
+  }
+  
+  function formatTime(seconds) {
+    const roundedSeconds = Math.round(seconds);
+    const minutes = Math.floor(roundedSeconds / 60);
+    const secs = roundedSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+  
+  function jumpToTime(seconds) {
+    const video = document.querySelector('video');
+    if (video) {
+      video.currentTime = seconds;
+    }
+  }
+  
+  function focusCurrentSubtitle(subtitles) {
+    const video = document.querySelector('video');
+    if (!video) return;
+  
+    const currentTime = video.currentTime;
+    const subtitleContainer = document.querySelector('#danmukuBox > div');
+    if (!subtitleContainer) return;
+  
+    let closestSubtitle = null;
+    let closestTimeDiff = Infinity;
+  
+    subtitles.forEach(subtitle => {
+      const timeDiff = Math.abs(subtitle.from - currentTime);
+      if (timeDiff < closestTimeDiff) {
+        closestTimeDiff = timeDiff;
+        closestSubtitle = subtitle;
+      }
+    });
+  
+    if (closestSubtitle) {
+      const subtitleElements = subtitleContainer.querySelectorAll('p');
+      subtitleElements.forEach((element, index) => {
+        const timeElement = element.querySelector('span');
+        if (timeElement && timeElement.textContent === formatTime(closestSubtitle.from)) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+    }
   }
