@@ -78,11 +78,18 @@ function interceptSubtitleRequest() {
     subtitleContainer.style.maxHeight = '300px';
     subtitleContainer.style.overflowY = 'auto';
   
+    // 创建按钮栏
+    const buttonBar = document.createElement('div');
+    buttonBar.style.marginBottom = '10px';
+  
     // 创建全文复制按钮
     const copyButton = document.createElement('button');
-    copyButton.textContent = '全文复制';
-    copyButton.style.marginBottom = '10px';
-    copyButton.onclick = () => copySubtitlesToClipboard(subtitles);
+    copyButton.textContent = '📋';
+    copyButton.style.marginRight = '10px';
+    copyButton.onclick = () => copySubtitlesToClipboard(subtitles, copyButton);
+  
+    buttonBar.appendChild(copyButton);
+    subtitleContainer.appendChild(buttonBar);
   
     // 添加逐字稿内容
     subtitles.forEach(subtitle => {
@@ -93,10 +100,9 @@ function interceptSubtitleRequest() {
   
     // 插入到弹幕列表上方
     danmukuBox.insertBefore(subtitleContainer, danmukuBox.firstChild);
-    danmukuBox.insertBefore(copyButton, subtitleContainer);
   }
   
-  function copySubtitlesToClipboard(subtitles) {
+  function copySubtitlesToClipboard(subtitles, button) {
     const textToCopy = subtitles.map(subtitle => subtitle.content).join('\n');
     const tempTextArea = document.createElement('textarea');
     tempTextArea.value = textToCopy;
@@ -104,5 +110,12 @@ function interceptSubtitleRequest() {
     tempTextArea.select();
     document.execCommand('copy');
     document.body.removeChild(tempTextArea);
-    alert('逐字稿已复制到剪贴板');
+  
+    // 更改按钮文本为勾的emoji
+    button.textContent = '✔️';
+  
+    // 恢复按钮文本
+    setTimeout(() => {
+      button.textContent = '📋';
+    }, 2000);
   }
