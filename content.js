@@ -91,7 +91,7 @@ function interceptSubtitleRequest() {
     const copyButton = document.createElement('button');
     copyButton.textContent = '📋';
     copyButton.style.marginRight = '10px';
-    copyButton.onclick = () => copySubtitlesToClipboard(subtitles, copyButton);
+    copyButton.onclick = () => copySubtitlesToClipboard(subtitles, copyButton, showTimestamp);
   
     // 创建定位到当前视频字幕的位置按钮
     const focusButton = document.createElement('button');
@@ -99,8 +99,17 @@ function interceptSubtitleRequest() {
     focusButton.style.marginRight = '10px';
     focusButton.onclick = () => focusCurrentSubtitle(subtitles, subtitleContainer);
   
+    // 创建显示/隐藏时间戳按钮
+    const toggleTimestampButton = document.createElement('button');
+    toggleTimestampButton.textContent = '⏱️';
+    toggleTimestampButton.style.marginRight = '10px';
+    toggleTimestampButton.onclick = () => toggleTimestamp(subtitleContainer, toggleTimestampButton);
+  
+    let showTimestamp = true; // 默认显示时间戳
+  
     buttonBar.appendChild(copyButton);
     buttonBar.appendChild(focusButton);
+    buttonBar.appendChild(toggleTimestampButton);
     subtitleContainer.appendChild(buttonBar);
   
     // 添加逐字稿内容
@@ -124,9 +133,13 @@ function interceptSubtitleRequest() {
     danmukuBox.insertBefore(subtitleContainer, danmukuBox.firstChild);
   }
   
-  function copySubtitlesToClipboard(subtitles, button) {
+  function copySubtitlesToClipboard(subtitles, button, showTimestamp) {
     const textToCopy = subtitles.map(subtitle => {
-      return `${formatTime(subtitle.from)} ${subtitle.content}`;
+      if (showTimestamp) {
+        return `${formatTime(subtitle.from)} ${subtitle.content}`;
+      } else {
+        return subtitle.content;
+      }
     }).join('\n');
   
     const tempTextArea = document.createElement('textarea');
@@ -191,3 +204,14 @@ function interceptSubtitleRequest() {
       });
     }
   }
+  
+  function toggleTimestamp(subtitleContainer, toggleTimestampButton) {
+    const timeElements = subtitleContainer.querySelectorAll('span');
+    showTimestamp = !showTimestamp;
+    timeElements.forEach(element => {
+      element.style.display = showTimestamp ? 'inline-block' : 'none';
+    });
+    // 更新按钮文本以反映当前状态
+    toggleTimestampButton.textContent = showTimestamp ? '⏱️' : '⏱️';
+  }
+  
