@@ -66,22 +66,25 @@ function interceptSubtitleRequest() {
   });
   
   function displaySubtitles(subtitles) {
-    const container = document.createElement('div');
-    container.style.position = 'fixed';
-    container.style.top = '10px';
-    container.style.right = '10px';
-    container.style.backgroundColor = 'white';
-    container.style.padding = '10px';
-    container.style.border = '1px solid black';
-    container.style.zIndex = '1000';
-    container.style.maxHeight = '90vh';
-    container.style.overflowY = 'auto';
+    const danmukuBox = document.getElementById('danmukuBox');
+    if (!danmukuBox) return;
   
+    // 创建逐字稿容器
+    const subtitleContainer = document.createElement('div');
+    subtitleContainer.style.backgroundColor = 'white';
+    subtitleContainer.style.padding = '10px';
+    subtitleContainer.style.border = '1px solid black';
+    subtitleContainer.style.marginBottom = '10px';
+    subtitleContainer.style.maxHeight = '300px';
+    subtitleContainer.style.overflowY = 'auto';
+  
+    // 添加逐字稿内容
     subtitles.forEach(subtitle => {
       const p = document.createElement('p');
       p.textContent = subtitle.content;
-      container.appendChild(p);
+      subtitleContainer.appendChild(p);
     });
   
-    document.body.appendChild(container);
+    // 插入到弹幕列表上方
+    danmukuBox.insertBefore(subtitleContainer, danmukuBox.firstChild);
   }
