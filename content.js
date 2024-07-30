@@ -91,16 +91,25 @@ function interceptSubtitleRequest() {
     const copyButton = document.createElement('button');
     copyButton.textContent = '📋';
     copyButton.style.marginRight = '10px';
-    copyButton.onclick = () => copySubtitlesToClipboard(subtitles, copyButton);
+    copyButton.onclick = () => copySubtitlesToClipboard(subtitles, copyButton, showTimestamp);
   
     // 创建定位到当前视频字幕的位置按钮
     const focusButton = document.createElement('button');
     focusButton.textContent = '🎯';
     focusButton.style.marginRight = '10px';
-    focusButton.onclick = () => focusCurrentSubtitle(subtitles);
+    focusButton.onclick = () => focusCurrentSubtitle(subtitles, subtitleContainer);
+  
+    // 创建显示/隐藏时间戳按钮
+    const toggleTimestampButton = document.createElement('button');
+    toggleTimestampButton.textContent = '⏱️';
+    toggleTimestampButton.style.marginRight = '10px';
+    toggleTimestampButton.onclick = () => toggleTimestamp(subtitleContainer, showTimestamp);
+  
+    let showTimestamp = true; // 默认显示时间戳
   
     buttonBar.appendChild(copyButton);
     buttonBar.appendChild(focusButton);
+    buttonBar.appendChild(toggleTimestampButton);
     subtitleContainer.appendChild(buttonBar);
   
     // 添加逐字稿内容
@@ -111,6 +120,7 @@ function interceptSubtitleRequest() {
       timeElement.style.color = '#00b8f6';
       timeElement.style.marginRight = '10px';
       timeElement.style.cursor = 'pointer';
+      timeElement.style.display = 'inline-block'; // 确保时间戳可以隐藏
       timeElement.onclick = () => jumpToTime(subtitle.from);
   
       const p = document.createElement('p');
@@ -123,8 +133,15 @@ function interceptSubtitleRequest() {
     danmukuBox.insertBefore(subtitleContainer, danmukuBox.firstChild);
   }
   
-  function copySubtitlesToClipboard(subtitles, button) {
-    const textToCopy = subtitles.map(subtitle => `${formatTime(subtitle.from)} ${subtitle.content}`).join('\n');
+  function copySubtitlesToClipboard(subtitles, button, showTimestamp) {
+    const textToCopy = subtitles.map(subtitle => {
+      if (showTimestamp) {
+        return `${formatTime(subtitle.from)} ${subtitle.content}`;
+      } else {
+        return subtitle.content;
+      }
+    }).join('\n');
+  
     const tempTextArea = document.createElement('textarea');
     tempTextArea.value = textToCopy;
     document.body.appendChild(tempTextArea);
@@ -155,12 +172,11 @@ function interceptSubtitleRequest() {
     }
   }
   
-  function focusCurrentSubtitle(subtitles) {
+  function focusCurrentSubtitle(subtitles, subtitleContainer) {
     const video = document.querySelector('video');
     if (!video) return;
   
     const currentTime = video.currentTime;
-    const subtitleContainer = document.querySelector('#danmukuBox > div');
     if (!subtitleContainer) return;
   
     let closestSubtitle = null;
@@ -180,7 +196,19 @@ function interceptSubtitleRequest() {
         const timeElement = element.querySelector('span');
         if (timeElement && timeElement.textContent === formatTime(closestSubtitle.from)) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.style.backgroundColor = '#ffffcc'; // 视觉变化
+          setTimeout(() => {
+            element.style.backgroundColor = ''; // 恢复原样
+          }, 2000);
         }
       });
     }
+  }
+  
+  function toggleTimestamp(subtitleContainer, showTimestamp) {
+    showTimestamp = !showTimestamp;
+    const timeElements = subtitleContainer.querySelectorAll('span');
+    timeElements.forEach(element => {
+      element.style.display = showTimestamp ? 'inline-block' : 'none';
+    });
   }
