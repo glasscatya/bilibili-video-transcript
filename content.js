@@ -67,7 +67,7 @@ function openSubtitle() {
 }
 
 let subtitleCheckAttempts = 0;
-const MAX_ATTEMPTS = 5; // 最多尝试20次，每次间隔500ms，总共10秒
+const MAX_ATTEMPTS = 3; // 最多尝试3次，每次间隔500ms，总共1.5秒
 const ATTEMPT_INTERVAL = 500; // 每次尝试间隔500ms
 
 function checkVideoAndSubtitle() {
