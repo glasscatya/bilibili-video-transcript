@@ -149,7 +149,8 @@ function displaySubtitles(subtitles) {
       subtitleElements.forEach((element, index) => {
         const timeElement = element.querySelector('span');
         if (timeElement && timeElement.textContent === formatTime(closestSubtitle.from)) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const offsetTop = element.offsetTop;
+          subtitleContainer.scrollTo({ top: offsetTop - (subtitleContainer.clientHeight / 2), behavior: 'smooth' });
           element.style.backgroundColor = '#ffffcc'; // 视觉变化
           setTimeout(() => {
             element.style.backgroundColor = ''; // 恢复原样
