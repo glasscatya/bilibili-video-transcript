@@ -25,10 +25,14 @@ function displaySubtitles(subtitles) {
   const danmukuBox = document.getElementById('danmukuBox');
   if (!danmukuBox) return;
 
-  // 防止冲突，移除现有的逐字稿容器
+  // 防止冲突，移除现有的逐字稿容器和底部栏
   const existingContainer = danmukuBox.querySelector('.subtitleContainer');
+  const existingFooter = danmukuBox.querySelector('.footerBar');
   if (existingContainer) {
     danmukuBox.removeChild(existingContainer);
+  }
+  if (existingFooter) {
+    danmukuBox.removeChild(existingFooter);
   }
 
   // 创建逐字稿容器
@@ -96,8 +100,35 @@ function displaySubtitles(subtitles) {
     subtitleContainer.appendChild(p);
   });
 
+  // 创建底部栏
+  const footerBar = document.createElement('div');
+  footerBar.className = 'footerBar';
+  footerBar.style.padding = '10px';
+  footerBar.style.backgroundColor = 'white';
+  footerBar.style.borderTop = '1px solid black';
+  footerBar.style.display = 'flex';
+  footerBar.style.justifyContent = 'space-between';
+  footerBar.style.alignItems = 'center';
+
+  // 创建作者信息
+  const authorInfo = document.createElement('div');
+  authorInfo.innerHTML = 'Made with ❤️ by <a href="https://github.com/glasscatya/bilibili-video-transcript" style="color: #0366d6; text-decoration: none;">glasscat</a>';
+  authorInfo.style.fontSize = '14px';
+
+  // 创建 Bilibili 链接
+  const bilibiliLink = document.createElement('a');
+  bilibiliLink.href = 'https://space.bilibili.com/93398070';
+  bilibiliLink.textContent = 'Bilibili';
+  bilibiliLink.style.color = '#00a1d6';
+  bilibiliLink.style.textDecoration = 'none';
+  bilibiliLink.style.fontSize = '14px';
+
+  footerBar.appendChild(authorInfo);
+  footerBar.appendChild(bilibiliLink);
+
   // 插入到弹幕列表上方
   danmukuBox.insertBefore(subtitleContainer, danmukuBox.firstChild);
+  danmukuBox.insertBefore(footerBar, subtitleContainer.nextSibling);
 
   function toggleTimestamp(subtitleContainer, toggleTimestampButton) {
     const timeElements = subtitleContainer.querySelectorAll('span');
