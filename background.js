@@ -8,8 +8,8 @@ self.addEventListener('activate', (event) => {
   console.log('Service Worker 已激活');
 });
 
-// 用于存储已处理的请求 URL
-const processedUrls = new Set();
+// 用于存储当前视频的已处理字幕 URL
+let processedUrls = new Set();
 
 // 处理字幕的函数
 async function handleSubtitle(url, type) {
@@ -36,6 +36,14 @@ async function handleSubtitle(url, type) {
     console.log(`该 ${type}字幕 URL 已经处理过，跳过:`, url);
   }
 }
+
+// 监听导航事件以检测新的视频页面
+chrome.webNavigation.onCommitted.addListener((details) => {
+  if (details.frameId === 0) {  // 只在主框架导航时重置
+    console.log("检测到新的视频页面，重置已处理的字幕 URL 集合");
+    processedUrls = new Set();
+  }
+}, {url: [{hostSuffix: 'bilibili.com'}]});
 
 chrome.webRequest.onCompleted.addListener(
   (details) => {
