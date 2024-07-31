@@ -1,4 +1,9 @@
-console.log("B站字幕助手已加载");
+// 在初始化函数中调用 checkVideoAndSubtitle
+function initialize() {
+  console.log("初始化B站字幕助手");
+  subtitleCheckAttempts = 0; // 重置尝试次数
+  checkVideoAndSubtitle();
+}
 
 // 拦截字幕请求
 function interceptSubtitleRequest() {
@@ -49,7 +54,7 @@ function openSubtitle() {
         setTimeout(() => {
           subtitleButton.click();
           console.log('AI字幕已关闭');
-        }, 1500); // 延迟1.5秒后关闭字幕
+        }, 1000); // 延迟1秒后关闭字幕
       } else {
         console.log('字幕不为AI生成,跳过该视频');
       }
@@ -57,9 +62,13 @@ function openSubtitle() {
       console.log('该视频无字幕');
     }
   } else {
-    console.log('未找到字幕按钮');
+    console.log('未找到字幕按钮，可能是视频没有字幕');
   }
 }
+
+let subtitleCheckAttempts = 0;
+const MAX_ATTEMPTS = 5; // 最多尝试20次，每次间隔500ms，总共10秒
+const ATTEMPT_INTERVAL = 500; // 每次尝试间隔500ms
 
 function checkVideoAndSubtitle() {
   console.log("检查视频和字幕状态");
@@ -68,19 +77,58 @@ function checkVideoAndSubtitle() {
   
   if (video && video.readyState >= 2) {
     console.log('视频已加载');
-    clearSubtitleContainer(); // 检测到新视频时清除字幕容器
     
     if (subtitleButton) {
       console.log('字幕按钮已加载');
+      clearSubtitleContainer(); // 只有在确认有字幕按钮时才清除旧的字幕容器
       openSubtitle();
+      subtitleCheckAttempts = 0; // 重置尝试次数
     } else {
-      console.log('该视频没有字幕');
-      // 如果没有字幕按钮，也应该清除字幕容器
-      clearSubtitleContainer();
+      subtitleCheckAttempts++;
+      if (subtitleCheckAttempts < MAX_ATTEMPTS) {
+        console.log(`字幕按钮尚未加载，继续等待... (尝试 ${subtitleCheckAttempts}/${MAX_ATTEMPTS})`);
+        setTimeout(checkVideoAndSubtitle, ATTEMPT_INTERVAL);
+      } else {
+        console.log('字幕检查超时，视频可能没有字幕');
+        handleNoSubtitles();
+      }
     }
   } else {
-    console.log('视频或字幕按钮尚未加载完毕，等待中...');
-    setTimeout(checkVideoAndSubtitle, 500); // 每500ms检查一次
+    console.log('视频尚未加载完毕，等待中...');
+    setTimeout(checkVideoAndSubtitle, ATTEMPT_INTERVAL);
+  }
+}
+
+function handleNoSubtitles() {
+  // 处理没有字幕的情况
+  console.log('确认视频没有字幕，执行相应逻辑');
+  clearSubtitleContainer();
+}
+
+function openSubtitle() {
+  console.log("尝试开启AI字幕");
+  var subtitleButton = document.querySelector('[aria-label="字幕"] [class="bpx-common-svg-icon"]');
+  if (subtitleButton) {
+    var subtitleState = document.querySelector('div[class="bpx-player-ctrl-subtitle-language-item bpx-state-active"]');
+    if (subtitleState) {
+      var subtitleName = subtitleState.innerText;
+      var stateNum = subtitleName.indexOf('自动');
+      if (stateNum !== -1) {
+        subtitleButton.click();
+        console.log('AI字幕已开启');
+        // 开启字幕后，再次点击关闭字幕
+        setTimeout(() => {
+          subtitleButton.click();
+          console.log('AI字幕已关闭');
+        }, 1500); // 延迟1.5秒后关闭字幕
+      } else {
+        console.log('字幕不为AI生成,跳过该视频');
+      }
+    } else {
+      console.log('该视频无字幕');
+    }
+  } else {
+    console.log('未找到字幕按钮，可能是视频没有字幕');
   }
 }
 
