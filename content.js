@@ -25,8 +25,15 @@ function displaySubtitles(subtitles) {
   const danmukuBox = document.getElementById('danmukuBox');
   if (!danmukuBox) return;
 
+  // 防止冲突，移除现有的逐字稿容器
+  const existingContainer = danmukuBox.querySelector('.subtitleContainer');
+  if (existingContainer) {
+    danmukuBox.removeChild(existingContainer);
+  }
+
   // 创建逐字稿容器
   const subtitleContainer = document.createElement('div');
+  subtitleContainer.className = 'subtitleContainer';
   subtitleContainer.style.backgroundColor = 'white';
   subtitleContainer.style.padding = '14px';
   subtitleContainer.style.border = '1px solid black';
