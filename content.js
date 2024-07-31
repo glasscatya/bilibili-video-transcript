@@ -1,10 +1,13 @@
+console.log("B站字幕助手已加载");
+
+// 拦截字幕请求
 function interceptSubtitleRequest() {
   var originalFetch = window.fetch;
   window.fetch = function(url, init) {
     return originalFetch(url, init).then(function(response) {
       if (response.url.includes('aisubtitle.hdslb.com')) {
         response.clone().text().then(function(body) {
-          console.log('字幕响应:', body);
+          console.log('获取到AI字幕数据:', body);
         });
       }
       return response;
@@ -14,6 +17,110 @@ function interceptSubtitleRequest() {
 
 interceptSubtitleRequest();
 
+// 清除字幕容器
+function clearSubtitleContainer() {
+  console.log("清除字幕容器");
+  const danmukuBox = document.getElementById('danmukuBox');
+  if (danmukuBox) {
+    const subtitleContainer = danmukuBox.querySelector('.subtitleContainer');
+    const footerBar = danmukuBox.querySelector('.footerBar');
+    if (subtitleContainer) {
+      danmukuBox.removeChild(subtitleContainer);
+    }
+    if (footerBar) {
+      danmukuBox.removeChild(footerBar);
+    }
+  }
+}
+
+// 自动开启 AI 字幕
+function openSubtitle() {
+  console.log("尝试开启AI字幕");
+  var subtitleButton = document.querySelector('[aria-label="字幕"] [class="bpx-common-svg-icon"]');
+  if (subtitleButton) {
+    var subtitleState = document.querySelector('div[class="bpx-player-ctrl-subtitle-language-item bpx-state-active"]');
+    if (subtitleState) {
+      var subtitleName = subtitleState.innerText;
+      var stateNum = subtitleName.indexOf('自动');
+      if (stateNum !== -1) {
+        subtitleButton.click();
+        console.log('AI字幕已开启');
+        // 开启字幕后，再次点击关闭字幕
+        setTimeout(() => {
+          subtitleButton.click();
+          console.log('AI字幕已关闭');
+        }, 1000); // 延迟1秒后关闭字幕
+      } else {
+        console.log('字幕不为AI生成,跳过该视频');
+      }
+    } else {
+      console.log('该视频无字幕');
+    }
+  } else {
+    console.log('未找到字幕按钮');
+  }
+}
+
+function checkVideoAndSubtitle() {
+  console.log("检查视频和字幕状态");
+  var video = document.querySelector('video[crossorigin="anonymous"]');
+  var subtitleButton = document.querySelector('[aria-label="字幕"] [class="bpx-common-svg-icon"]');
+  
+  if (video && video.readyState >= 2) {
+    console.log('视频已加载');
+    clearSubtitleContainer(); // 检测到新视频时清除字幕容器
+    
+    if (subtitleButton) {
+      console.log('字幕按钮已加载');
+      openSubtitle();
+    } else {
+      console.log('该视频没有字幕');
+      // 如果没有字幕按钮，也应该清除字幕容器
+      clearSubtitleContainer();
+    }
+  } else {
+    console.log('视频或字幕按钮尚未加载完毕，等待中...');
+    setTimeout(checkVideoAndSubtitle, 500); // 每500ms检查一次
+  }
+}
+
+// 使用 MutationObserver 监听页面变化
+function observePageChanges() {
+  console.log("开始监听页面变化");
+  const observer = new MutationObserver((mutations) => {
+    if (document.querySelector('video[crossorigin="anonymous"]')) {
+      console.log("检测到视频元素");
+      observer.disconnect();
+      checkVideoAndSubtitle();
+    }
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}
+
+// 初始化函数
+function initialize() {
+  console.log("初始化B站字幕助手");
+  observePageChanges();
+}
+
+// 监听页面加载完成事件
+window.addEventListener('load', initialize);
+
+// 监听页面 URL 变化
+let lastUrl = location.href;
+new MutationObserver(() => {
+  const url = location.href;
+  if (url !== lastUrl) {
+    lastUrl = url;
+    console.log('页面 URL 发生变化，重新初始化');
+    initialize();
+  }
+}).observe(document, { subtree: true, childList: true });
+
 // 监听来自 background.js 的消息
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "showSubtitles") {
@@ -21,19 +128,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+// 显示字幕的函数
 function displaySubtitles(subtitles) {
   const danmukuBox = document.getElementById('danmukuBox');
   if (!danmukuBox) return;
 
   // 防止冲突，移除现有的逐字稿容器和底部栏
-  const existingContainer = danmukuBox.querySelector('.subtitleContainer');
-  const existingFooter = danmukuBox.querySelector('.footerBar');
-  if (existingContainer) {
-    danmukuBox.removeChild(existingContainer);
-  }
-  if (existingFooter) {
-    danmukuBox.removeChild(existingFooter);
-  }
+  clearSubtitleContainer();
 
   // 创建逐字稿容器
   const subtitleContainer = document.createElement('div');
@@ -41,7 +142,6 @@ function displaySubtitles(subtitles) {
   subtitleContainer.style.backgroundColor = 'white';
   subtitleContainer.style.padding = '14px';
   subtitleContainer.style.border = '1px solid black';
-  subtitleContainer.style.marginBottom = '14px';
   subtitleContainer.style.maxHeight = '300px';
   subtitleContainer.style.overflowY = 'auto';
   subtitleContainer.style.position = 'relative';
@@ -105,26 +205,18 @@ function displaySubtitles(subtitles) {
   footerBar.className = 'footerBar';
   footerBar.style.padding = '10px';
   footerBar.style.backgroundColor = 'white';
-  footerBar.style.borderTop = '1px solid black';
+  footerBar.style.border = '1px solid black';
   footerBar.style.display = 'flex';
-  footerBar.style.justifyContent = 'space-between';
+  footerBar.style.justifyContent = 'center';
   footerBar.style.alignItems = 'center';
+  footerBar.style.marginTop = '-1px'; // 调整底部栏与内容容器的距离
 
-  // 创建作者信息
+  // 创建作者信息和链接
   const authorInfo = document.createElement('div');
-  authorInfo.innerHTML = 'Made with ❤️ by <a href="https://github.com/glasscatya/bilibili-video-transcript" style="color: #0366d6; text-decoration: none;">glasscat</a>';
-  authorInfo.style.fontSize = '14px';
-
-  // 创建 Bilibili 链接
-  const bilibiliLink = document.createElement('a');
-  bilibiliLink.href = 'https://space.bilibili.com/93398070';
-  bilibiliLink.textContent = 'Bilibili';
-  bilibiliLink.style.color = '#00a1d6';
-  bilibiliLink.style.textDecoration = 'none';
-  bilibiliLink.style.fontSize = '14px';
+  authorInfo.innerHTML = `Made with ❤️ by glasscat, <a href="https://blog.glasscat.top" target="_blank" style="color: #0366d6; text-decoration: none;">📝 Blog</a> <a href="https://github.com/glasscatya" target="_blank" style="color: #0366d6; text-decoration: none;">🐙 GitHub</a> <a href="https://space.bilibili.com/93398070" target="_blank" style="color: #00a1d6; text-decoration: none;">🎬 Bilibili</a>`;
+  authorInfo.style.fontSize = '10px';
 
   footerBar.appendChild(authorInfo);
-  footerBar.appendChild(bilibiliLink);
 
   // 插入到弹幕列表上方
   danmukuBox.insertBefore(subtitleContainer, danmukuBox.firstChild);
