@@ -49,7 +49,7 @@ function openSubtitle() {
         setTimeout(() => {
           subtitleButton.click();
           console.log('AI字幕已关闭');
-        }, 1000); // 延迟1秒后关闭字幕
+        }, 1500); // 延迟1.5秒后关闭字幕
       } else {
         console.log('字幕不为AI生成,跳过该视频');
       }
