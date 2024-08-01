@@ -176,13 +176,15 @@ function displaySubtitles(subtitles) {
   // 创建按钮栏
   const buttonBar = document.createElement('div');
   buttonBar.className = 'buttonBar';
-  buttonBar.style.marginBottom = '12px';
+  buttonBar.style.marginBottom = '-1px';
   buttonBar.style.position = 'sticky';
   buttonBar.style.top = '0';
   buttonBar.style.background = 'white';
   buttonBar.style.zIndex = '1';
   buttonBar.style.display = 'flex';
   buttonBar.style.alignItems = 'center';
+  buttonBar.style.padding = '10px'; // 添加内边距
+  buttonBar.style.border = '1px solid black'; // 添加边框
 
   // 创建显示/隐藏时间戳按钮
   const toggleTimestampButton = document.createElement('button');
