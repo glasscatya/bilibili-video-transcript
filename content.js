@@ -29,11 +29,15 @@ function clearSubtitleContainer() {
   if (danmukuBox) {
     const subtitleContainer = danmukuBox.querySelector('.subtitleContainer');
     const footerBar = danmukuBox.querySelector('.footerBar');
+    const buttonBar = danmukuBox.querySelector('.buttonBar');
     if (subtitleContainer) {
       danmukuBox.removeChild(subtitleContainer);
     }
     if (footerBar) {
       danmukuBox.removeChild(footerBar);
+    }
+    if (buttonBar) {
+      danmukuBox.removeChild(buttonBar);
     }
   }
 }
@@ -54,7 +58,7 @@ function openSubtitle() {
         setTimeout(() => {
           subtitleButton.click();
           console.log('AI字幕已关闭');
-        }, 1000); // 延迟1秒后关闭字幕
+        }, 1800); // 延迟1.8秒后关闭字幕
       } else {
         console.log('字幕不为AI生成,跳过该视频');
       }
@@ -103,33 +107,6 @@ function handleNoSubtitles() {
   // 处理没有字幕的情况
   console.log('确认视频没有字幕，执行相应逻辑');
   clearSubtitleContainer();
-}
-
-function openSubtitle() {
-  console.log("尝试开启AI字幕");
-  var subtitleButton = document.querySelector('[aria-label="字幕"] [class="bpx-common-svg-icon"]');
-  if (subtitleButton) {
-    var subtitleState = document.querySelector('div[class="bpx-player-ctrl-subtitle-language-item bpx-state-active"]');
-    if (subtitleState) {
-      var subtitleName = subtitleState.innerText;
-      var stateNum = subtitleName.indexOf('自动');
-      if (stateNum !== -1) {
-        subtitleButton.click();
-        console.log('AI字幕已开启');
-        // 开启字幕后，再次点击关闭字幕
-        setTimeout(() => {
-          subtitleButton.click();
-          console.log('AI字幕已关闭');
-        }, 1500); // 延迟1.5秒后关闭字幕
-      } else {
-        console.log('字幕不为AI生成,跳过该视频');
-      }
-    } else {
-      console.log('该视频无字幕');
-    }
-  } else {
-    console.log('未找到字幕按钮，可能是视频没有字幕');
-  }
 }
 
 // 使用 MutationObserver 监听页面变化
@@ -194,14 +171,18 @@ function displaySubtitles(subtitles) {
   subtitleContainer.style.overflowY = 'auto';
   subtitleContainer.style.position = 'relative';
   subtitleContainer.style.fontSize = '14px'; // 设置逐字稿文字大小为14px
+  subtitleContainer.style.transition = 'max-height 0.3s ease-out';
 
   // 创建按钮栏
   const buttonBar = document.createElement('div');
+  buttonBar.className = 'buttonBar';
   buttonBar.style.marginBottom = '12px';
   buttonBar.style.position = 'sticky';
   buttonBar.style.top = '0';
   buttonBar.style.background = 'white';
   buttonBar.style.zIndex = '1';
+  buttonBar.style.display = 'flex';
+  buttonBar.style.alignItems = 'center';
 
   // 创建显示/隐藏时间戳按钮
   const toggleTimestampButton = document.createElement('button');
@@ -224,10 +205,20 @@ function displaySubtitles(subtitles) {
   focusButton.style.fontSize = '12px'; // 设置按钮文字大小为12px
   focusButton.onclick = () => focusCurrentSubtitle(subtitles, subtitleContainer);
 
+  // 创建折叠按钮
+  const toggleFoldButton = document.createElement('button');
+  toggleFoldButton.textContent = '🔽'; // 使用emoji作为按钮
+  toggleFoldButton.style.marginLeft = 'auto'; // 将按钮移到最右侧
+  toggleFoldButton.style.fontSize = '16px'; // 设置按钮文字大小
+  toggleFoldButton.style.background = 'none';
+  toggleFoldButton.style.border = 'none';
+  toggleFoldButton.style.cursor = 'pointer';
+  toggleFoldButton.onclick = () => toggleFold(subtitleContainer, toggleFoldButton);
+
   buttonBar.appendChild(toggleTimestampButton);
   buttonBar.appendChild(copyButton);
   buttonBar.appendChild(focusButton);
-  subtitleContainer.appendChild(buttonBar);
+  buttonBar.appendChild(toggleFoldButton);
 
   let showTimestamp = true;
 
@@ -261,13 +252,14 @@ function displaySubtitles(subtitles) {
 
   // 创建作者信息和链接
   const authorInfo = document.createElement('div');
-  authorInfo.innerHTML = `Made with ❤️ by <a href="https://github.com/glasscatya" target="_blank" style="color: #0366d6; text-decoration: none;">glasscat</a>, contact me: <a href="https://space.bilibili.com/93398070" target="_blank" style="color: #00a1d6; text-decoration: none;">bilibili</a>`;
+  authorInfo.innerHTML = `Made with ❤️ by <a href="https://github.com/glasscatya/bilibili-video-transcript" target="_blank" style="color: #0366d6; text-decoration: none;">glasscat</a>, contact me: <a href="https://space.bilibili.com/93398070" target="_blank" style="color: #00a1d6; text-decoration: none;">bilibili</a>`;
   authorInfo.style.fontSize = '10px';
 
   footerBar.appendChild(authorInfo);
 
   // 插入到弹幕列表上方
-  danmukuBox.insertBefore(subtitleContainer, danmukuBox.firstChild);
+  danmukuBox.insertBefore(buttonBar, danmukuBox.firstChild);
+  danmukuBox.insertBefore(subtitleContainer, buttonBar.nextSibling);
   danmukuBox.insertBefore(footerBar, subtitleContainer.nextSibling);
 
   function toggleTimestamp(subtitleContainer, toggleTimestampButton) {
@@ -335,6 +327,16 @@ function displaySubtitles(subtitles) {
           }, 2000);
         }
       });
+    }
+  }
+
+  function toggleFold(container, button) {
+    if (container.style.maxHeight === '0px') {
+      container.style.maxHeight = '300px';
+      button.textContent = '🔽';
+    } else {
+      container.style.maxHeight = '0px';
+      button.textContent = '🔼';
     }
   }
 }
