@@ -261,7 +261,7 @@ function displaySubtitles(subtitles) {
 
   // 创建作者信息和链接
   const authorInfo = document.createElement('div');
-  authorInfo.innerHTML = `Made with ❤️ by glasscat, <a href="https://blog.glasscat.top" target="_blank" style="color: #0366d6; text-decoration: none;">📝 Blog</a> <a href="https://github.com/glasscatya" target="_blank" style="color: #0366d6; text-decoration: none;">🐙 GitHub</a> <a href="https://space.bilibili.com/93398070" target="_blank" style="color: #00a1d6; text-decoration: none;">🎬 Bilibili</a>`;
+  authorInfo.innerHTML = `Made with ❤️ by <a href="https://github.com/glasscatya" target="_blank" style="color: #0366d6; text-decoration: none;">glasscat</a>, contact me: <a href="https://space.bilibili.com/93398070" target="_blank" style="color: #00a1d6; text-decoration: none;">bilibili</a>`;
   authorInfo.style.fontSize = '10px';
 
   footerBar.appendChild(authorInfo);
