@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "bilibili视频文稿助手",
     "version": "1.0.0",
-    "default_locale": "zh",
+    "default_locale": "zh_CN",
     "description": "将bilibili视频逐字稿显示在您的网页中，以便于快速浏览内容，或是复习记录与回顾。",
     "permissions": [
       "webRequest",
