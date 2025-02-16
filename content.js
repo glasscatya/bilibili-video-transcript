@@ -1,9 +1,25 @@
+function getBVID() {
+  // 处理watchlater列表页面
+  if (window.location.pathname === '/list/watchlater') {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('bvid');
+  }
+  // 处理常规视频页面
+  return window.location.pathname.split('/video/')[1]?.replace('/', '');
+}
+
 // 在初始化函数中调用 checkVideoAndSubtitle
 function initialize() {
   console.log("初始化B站字幕助手");
-  subtitleCheckAttempts = 0; // 重置尝试次数
+  const currentBVID = getBVID();
+  if (!currentBVID) {
+    console.log('未找到有效的视频BVID');
+    return;
+  }
+  subtitleCheckAttempts = 0;
   checkVideoAndSubtitle();
 }
+
 
 // 拦截字幕请求
 function interceptSubtitleRequest() {
@@ -113,7 +129,8 @@ function handleNoSubtitles() {
 function observePageChanges() {
   console.log("开始监听页面变化");
   const observer = new MutationObserver((mutations) => {
-    if (document.querySelector('video[crossorigin="anonymous"]')) {
+    const currentBVID = getBVID();
+    if (document.querySelector('video[crossorigin="anonymous"]') && currentBVID) {
       console.log("检测到视频元素");
       observer.disconnect();
       checkVideoAndSubtitle();

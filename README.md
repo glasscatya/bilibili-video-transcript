@@ -4,7 +4,7 @@ Bilibili 视频文稿助手(bilibili-video-transcript)
 本插件可以将bilibili视频逐字稿显示在您的网页中，以便于快速浏览内容，或是复习记录与回顾。
 
 ## 功能
-- 自动加载字幕到视频侧边。（将会优先加载人工字幕，如何无人工字幕，将加载ai字幕。）
+- 自动加载字幕到视频侧边。（将会优先加载人工字幕，如果没有人工字幕，将加载ai字幕。）
 - 字幕将自带时间戳，可以跳转至对应时间。
 - 一键复制所有字幕。
 ![功能展示](https://raw.githubusercontent.com/glasscatya/bilibili-video-transcript/main/Demo.png)
@@ -25,10 +25,6 @@ Edge浏览器，可至插件商店下载。
 2.下载bilibili-video-transcript.zip,并解压。
 3.开启chrome浏览器插件的开发者模式。
 4.将bilibili-video-transcript拖入chrome://extensions页面，然后松开鼠标即可完成安装。
-
-### 其他浏览器
-
-其他支持插件的浏览器(eg:Firefox...)，流程也大致同上。
 
 ## 使用方法
 
