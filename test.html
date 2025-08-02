@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>B站视频文稿助手 - 功能测试</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .test-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .test-section h2 {
+      color: #00a1d6;
+      margin-top: 0;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .status.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .status.warning {
+      background-color: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    button {
+      background-color: #00a1d6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background-color: #0091c2;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>B站视频文稿助手 - 功能测试</h1>
+  
+  <div class="test-section">
+    <h2>插件状态检查</h2>
+    <div id="pluginStatus" class="status warning">正在检查插件状态...</div>
+    <button onclick="checkPluginStatus()">重新检查</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>API配置测试</h2>
+    <div id="apiStatus" class="status warning">正在检查API配置...</div>
+    <button onclick="checkAPIConfig()">检查API配置</button>
+    <button onclick="openOptions()">打开设置页面</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>模拟字幕转换测试</h2>
+    <div id="conversionStatus" class="status warning">准备测试转换功能...</div>
+    <button onclick="testConversion()">测试转换功能</button>
+  </div>
+
+  <script>
+    // 检查插件状态
+    function checkPluginStatus() {
+      const statusDiv = document.getElementById('pluginStatus');
+      statusDiv.textContent = '正在检查插件状态...';
+      statusDiv.className = 'status warning';
+      
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        statusDiv.textContent = '✅ 插件已正确加载';
+        statusDiv.className = 'status success';
+      } else {
+        statusDiv.textContent = '❌ 插件未正确加载或不在扩展环境中';
+        statusDiv.className = 'status error';
+      }
+    }
+    
+    // 检查API配置
+    function checkAPIConfig() {
+      const statusDiv = document.getElementById('apiStatus');
+      statusDiv.textContent = '正在检查API配置...';
+      statusDiv.className = 'status warning';
+      
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        chrome.storage.sync.get(['apiEndpoint', 'apiKey'], (result) => {
+          if (result.apiEndpoint && result.apiKey) {
+            statusDiv.textContent = '✅ API配置已设置';
+            statusDiv.className = 'status success';
+          } else {
+            statusDiv.textContent = '⚠️ API配置未完成，请前往设置页面配置';
+            statusDiv.className = 'status error';
+          }
+        });
+      } else {
+        statusDiv.textContent = '❌ 无法访问存储API';
+        statusDiv.className = 'status error';
+      }
+    }
+    
+    // 打开设置页面
+    function openOptions() {
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        chrome.runtime.openOptionsPage();
+      } else {
+        alert('无法打开设置页面，请手动访问插件设置');
+      }
+    }
+    
+    // 测试转换功能
+    function testConversion() {
+      const statusDiv = document.getElementById('conversionStatus');
+      statusDiv.textContent = '正在测试转换功能...';
+      statusDiv.className = 'status warning';
+      
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        const testSubtitle = "这是一个测试字幕。\n它包含多行内容。\n用于测试AI转换功能。";
+        
+        chrome.runtime.sendMessage({
+          action: "convertToArticle",
+          subtitleText: testSubtitle
+        }, (response) => {
+          if (response && response.success) {
+            statusDiv.textContent = '✅ 转换功能测试成功！';
+            statusDiv.className = 'status success';
+            console.log('转换结果:', response.article);
+          } else {
+            statusDiv.textContent = '❌ 转换功能测试失败: ' + (response?.error || '未知错误');
+            statusDiv.className = 'status error';
+          }
+        });
+      } else {
+        statusDiv.textContent = '❌ 无法访问插件API';
+        statusDiv.className = 'status error';
+      }
+    }
+    
+    // 页面加载时自动检查
+    document.addEventListener('DOMContentLoaded', () => {
+      checkPluginStatus();
+      checkAPIConfig();
+    });
+  </script>
+</body>
+</html> 

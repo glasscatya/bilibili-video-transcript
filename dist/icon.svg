@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00a1d6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0091c2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景圆形 -->
+  <circle cx="64" cy="64" r="60" fill="url(#grad1)" stroke="#fff" stroke-width="4"/>
+  
+  <!-- 视频播放图标 -->
+  <polygon points="45,35 45,93 85,64" fill="#fff"/>
+  
+  <!-- 字幕文本线条 -->
+  <rect x="25" y="100" width="78" height="4" rx="2" fill="#fff" opacity="0.8"/>
+  <rect x="30" y="110" width="68" height="4" rx="2" fill="#fff" opacity="0.6"/>
+  <rect x="35" y="120" width="58" height="4" rx="2" fill="#fff" opacity="0.4"/>
+</svg> 
