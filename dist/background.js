@@ -86,7 +86,7 @@ async function convertSubtitleToArticle(subtitleText, bvid) {
     }
 
     // 从存储中获取API配置
-    const config = await chrome.storage.sync.get(['apiEndpoint', 'apiKey', 'model', 'customModel', 'targetWordCount']);
+    const config = await chrome.storage.sync.get(['apiEndpoint', 'apiKey', 'model', 'customModel']);
     
     if (!config.apiEndpoint || !config.apiKey) {
       throw new Error('请先在插件设置中配置API端点和密钥');
@@ -103,31 +103,20 @@ async function convertSubtitleToArticle(subtitleText, bvid) {
     }
 
     // 限制字幕长度，避免API调用超时
-    const maxLength = 16000; // 大约8000个中文字符
+    const maxLength = 8000; // 大约4000个中文字符
     if (subtitleText.length > maxLength) {
       subtitleText = subtitleText.substring(0, maxLength) + '\n\n[内容已截断，仅处理前' + maxLength + '个字符]';
     }
 
-    // 构建字数要求
-    let wordCountRequirement = '';
-    if (config.targetWordCount) {
-      wordCountRequirement = `6. 文章总字数应控制在${config.targetWordCount}字左右（允许±10%的误差）。`;
-    } else {
-      wordCountRequirement = '6. 字幕多少字，文章就多少字左右，使表达更加简洁精炼，更加文本化、专业化，同时提升词汇丰富度。';
-    }
-
-    const prompt = `你的任务是将给定的字幕改写成一篇优秀文章，在对文字结构进行调整时，要让句型更丰富多样，避免重复；对语法错误、错别字、行文逻辑进行细致修改。同时，替换常见词汇以提升词汇丰富度，并为合适的句子添加过渡词增强段落连贯性。请仔细阅读以下字幕内容：
-<字幕>
+    const prompt = `你的任务是根据提供的字幕文本输出逐字稿。请仔细阅读以下字幕文本，并按照指示生成逐字稿。
+字幕文本:
+<subtitle_text>
 ${subtitleText}
-</字幕>
-在改写文章时，请遵循以下指南：
-1. 精心调整文字的结构，使语句更加流畅自然，符合正常的语言表达习惯，同时注重句型的多样性。
-2. 尽最大可能保留原文的核心内容和关键信息。
-3. 杜绝使用过于生硬、机械的表达方式，使文章具有较强的可读性和连贯性，在合适之处添加过渡词。
-4. 不要大幅度改变原文的语义和主题。
-5. 使表达更加简洁精炼，更加文本化、专业化，同时提升词汇丰富度。
-${wordCountRequirement}
-请在<文章>标签内写下改写后的文章。
+</subtitle_text>
+在生成逐字稿时，请遵循以下指南:
+1. 输出必须是字幕文本的逐字表述，不做任何内容的增减、修改或润色。
+2. 保持文本的原始格式，包括标点符号和大小写。
+请在<文章>标签内写下你的逐字稿。
 `;
 
     const response = await fetch(config.apiEndpoint, {

@@ -20,7 +20,7 @@ function setupModelSelection() {
 
 // 加载设置
 function loadSettings() {
-  chrome.storage.sync.get(['apiEndpoint', 'apiKey', 'model', 'customModel', 'targetWordCount'], (result) => {
+  chrome.storage.sync.get(['apiEndpoint', 'apiKey', 'model', 'customModel'], (result) => {
     if (result.apiEndpoint) {
       document.getElementById('apiEndpoint').value = result.apiEndpoint;
     }
@@ -36,9 +36,6 @@ function loadSettings() {
     if (result.customModel) {
       document.getElementById('customModel').value = result.customModel;
     }
-    if (result.targetWordCount) {
-      document.getElementById('targetWordCount').value = result.targetWordCount;
-    }
   });
 }
 
@@ -48,7 +45,6 @@ function saveSettings() {
   const apiKey = document.getElementById('apiKey').value.trim();
   const model = document.getElementById('model').value;
   const customModel = document.getElementById('customModel').value.trim();
-  const targetWordCount = document.getElementById('targetWordCount').value.trim();
   
   // 验证输入
   if (!apiEndpoint) {
@@ -67,11 +63,6 @@ function saveSettings() {
     return;
   }
   
-  // 验证目标字数
-  if (targetWordCount && (isNaN(targetWordCount) || targetWordCount < 100 || targetWordCount > 10000)) {
-    showStatus('目标字数必须在100-10000之间', 'error');
-    return;
-  }
   
   // 验证URL格式
   try {
@@ -92,9 +83,6 @@ function saveSettings() {
     saveData.customModel = customModel;
   }
   
-  if (targetWordCount) {
-    saveData.targetWordCount = parseInt(targetWordCount);
-  }
   
   chrome.storage.sync.set(saveData, () => {
     if (chrome.runtime.lastError) {
