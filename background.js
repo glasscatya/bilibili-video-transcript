@@ -108,15 +108,17 @@ async function convertSubtitleToArticle(subtitleText, bvid) {
       subtitleText = subtitleText.substring(0, maxLength) + '\n\n[内容已截断，仅处理前' + maxLength + '个字符]';
     }
 
-    const prompt = `你的任务是根据提供的字幕文本输出逐字稿。请仔细阅读以下字幕文本，并按照指示生成逐字稿。
-字幕文本:
+    const prompt = `你的任务是根据提供的字幕文本输出逐字稿文章。
+请仔细阅读以下字幕文本：
 <subtitle_text>
 ${subtitleText}
 </subtitle_text>
-在生成逐字稿时，请遵循以下指南:
-1. 输出必须是字幕文本的逐字表述，不做任何内容的增减、修改或润色。
-2. 保持文本的原始格式，包括标点符号和大小写。
-请在<文章>标签内写下你的逐字稿。
+在将字幕文本转换为逐字稿文章时，请遵循以下规则：
+1. 保持内容的完整性，不遗漏字幕中的任何信息。
+2. 合理使用标点符号，使文章语句通顺、表意清晰。
+
+请在<文章>标签内输出转换后的逐字稿文章。
+
 `;
 
     const response = await fetch(config.apiEndpoint, {
