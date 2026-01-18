@@ -87,17 +87,78 @@ function openSubtitle() {
 }
 
 let subtitleCheckAttempts = 0;
+let apiTried = false; // 标记是否已尝试过 API 获取
 const MAX_ATTEMPTS = 3; // 最多尝试3次，每次间隔500ms，总共1.5秒
 const ATTEMPT_INTERVAL = 500; // 每次尝试间隔500ms
 
-function checkVideoAndSubtitle() {
+// 获取 CID (Content ID)
+function getCID() {
+  try {
+    const scripts = document.getElementsByTagName('script');
+    for (let i = 0; i < scripts.length; i++) {
+      if (scripts[i].innerHTML.includes('window.__INITIAL_STATE__')) {
+        const content = scripts[i].innerHTML;
+        // 简单匹配 "cid":123456
+        const match = content.match(/"cid":(\d+)/);
+        if (match) return match[1];
+      }
+    }
+  } catch (e) {
+    console.error('获取 CID 失败:', e);
+  }
+  return null;
+}
+
+// 尝试通过 API 获取字幕
+async function tryFetchSubtitleFromApi() {
+  const bvid = getBVID();
+  const cid = getCID();
+  
+  if (!bvid || !cid) {
+    console.log('无法获取 BVID 或 CID，跳过 API 字幕获取');
+    return false;
+  }
+
+  console.log(`尝试通过 API 获取字幕 (BVID: ${bvid}, CID: ${cid})...`);
+  
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({
+      action: "fetchBilibiliSubtitle",
+      bvid: bvid,
+      cid: cid
+    }, (response) => {
+      if (response && response.success && response.subtitles) {
+        console.log('API 字幕获取成功');
+        displaySubtitles(response.subtitles);
+        resolve(true);
+      } else {
+        console.log('API 字幕获取失败或无字幕:', response?.error);
+        resolve(false);
+      }
+    });
+  });
+}
+
+async function checkVideoAndSubtitle() {
   console.log("检查视频和字幕状态");
   var video = document.querySelector('video[crossorigin="anonymous"]');
+  var danmukuBox = document.getElementById('danmukuBox');
   var subtitleButton = document.querySelector('[aria-label="字幕"] [class="bpx-common-svg-icon"]');
   
-  if (video && video.readyState >= 2) {
-    console.log('视频已加载');
+  if (video && video.readyState >= 2 && danmukuBox) {
+    console.log('视频及容器已加载');
     
+    // 1. 优先尝试 API 获取 (仅尝试一次)
+    if (!apiTried) {
+        apiTried = true;
+        const apiSuccess = await tryFetchSubtitleFromApi();
+        if (apiSuccess) {
+            console.log('通过 API 成功获取字幕，跳过模拟点击流程');
+            return;
+        }
+    }
+    
+    // 2. API 失败，回退到模拟点击流程
     if (subtitleButton) {
       console.log('字幕按钮已加载');
       clearSubtitleContainer(); // 只有在确认有字幕按钮时才清除旧的字幕容器
@@ -114,16 +175,284 @@ function checkVideoAndSubtitle() {
       }
     }
   } else {
-    console.log('视频尚未加载完毕，等待中...');
+    console.log('视频或容器尚未加载完毕，等待中...');
     setTimeout(checkVideoAndSubtitle, ATTEMPT_INTERVAL);
   }
 }
 
 function handleNoSubtitles() {
   // 处理没有字幕的情况
-  console.log('确认视频没有字幕，执行相应逻辑');
+  console.log('确认视频没有字幕，显示手动AI识别面板');
   clearSubtitleContainer();
+  renderManualPanel();
 }
+
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+
+function renderManualPanel() {
+  const danmukuBox = document.getElementById('danmukuBox');
+  if (!danmukuBox) return;
+
+  // 创建容器
+  const subtitleContainer = document.createElement('div');
+  subtitleContainer.className = 'subtitleContainer';
+  subtitleContainer.style.backgroundColor = 'white';
+  subtitleContainer.style.padding = '14px';
+  subtitleContainer.style.border = '1px solid black';
+  subtitleContainer.style.maxHeight = '300px';
+  subtitleContainer.style.overflowY = 'auto';
+  subtitleContainer.style.position = 'relative';
+  subtitleContainer.style.fontSize = '14px';
+  
+  // 提示信息
+  const tip = document.createElement('p');
+  tip.innerHTML = '未检测到B站官方字幕。您可以尝试使用AI听写功能。<br><span style="color:orange;font-size:11px;">注意：请确保已配置OpenAI API Key。单次录音建议不超过10分钟(API限制)。</span>';
+  tip.style.color = '#666';
+  tip.style.marginBottom = '10px';
+  tip.style.fontSize = '12px';
+  
+  // 录音按钮
+  const recordButton = document.createElement('button');
+  recordButton.textContent = '🎙️ 开始 AI 听写';
+  recordButton.style.padding = '8px 16px';
+  recordButton.style.backgroundColor = '#00a1d6';
+  recordButton.style.color = 'white';
+  recordButton.style.border = 'none';
+  recordButton.style.borderRadius = '4px';
+  recordButton.style.cursor = 'pointer';
+  recordButton.style.width = '100%';
+  
+  recordButton.onclick = () => toggleRecording(recordButton, subtitleContainer);
+
+  // 极速识别按钮
+  const fastButton = document.createElement('button');
+  fastButton.textContent = '🚀 极速识别 (无需播放)';
+  fastButton.style.padding = '8px 16px';
+  fastButton.style.backgroundColor = '#4caf50'; // Green
+  fastButton.style.color = 'white';
+  fastButton.style.border = 'none';
+  fastButton.style.borderRadius = '4px';
+  fastButton.style.cursor = 'pointer';
+  fastButton.style.width = '100%';
+  fastButton.style.marginTop = '10px';
+  
+  fastButton.onclick = () => startFastTranscribe(fastButton, subtitleContainer);
+
+  subtitleContainer.appendChild(tip);
+  subtitleContainer.appendChild(recordButton);
+  subtitleContainer.appendChild(fastButton);
+
+  // 插入到弹幕列表上方
+  danmukuBox.insertBefore(subtitleContainer, danmukuBox.firstChild);
+}
+
+// 获取音频流地址
+function getAudioUrl() {
+  try {
+    // 尝试从 script 标签中解析 __playinfo__
+    const scripts = document.getElementsByTagName('script');
+    for (let i = 0; i < scripts.length; i++) {
+      if (scripts[i].innerHTML.includes('window.__playinfo__')) {
+        const content = scripts[i].innerHTML;
+        const jsonStr = content.substring(content.indexOf('{'), content.lastIndexOf('}') + 1);
+        const playinfo = JSON.parse(jsonStr);
+        
+        if (playinfo.data && playinfo.data.dash && playinfo.data.dash.audio) {
+          // 优先寻找 id 最小的音频流 (通常 bitrate 最低，文件最小)
+          // 30280: 192k, 30232: 132k, 30216: 64k
+          const audios = playinfo.data.dash.audio;
+          audios.sort((a, b) => a.id - b.id);
+          return audios[0].baseUrl || audios[0].backupUrl[0];
+        }
+      }
+    }
+  } catch (e) {
+    console.error('解析 playinfo 失败:', e);
+  }
+  return null;
+}
+
+async function startFastTranscribe(button, container) {
+  const audioUrl = getAudioUrl();
+  if (!audioUrl) {
+    alert('无法获取音频流地址，请尝试刷新页面或使用录音模式。');
+    return;
+  }
+
+  button.textContent = '⏳ 正在下载并识别...';
+  button.disabled = true;
+
+  chrome.runtime.sendMessage({
+    action: "downloadAndTranscribe",
+    audioUrl: audioUrl,
+    bvid: getBVID()
+  }, (response) => {
+    button.disabled = false;
+    button.textContent = '🚀 极速识别 (无需播放)';
+    
+    if (response && response.success) {
+      // 显示识别结果 (复用现有逻辑)
+      const resultContainer = document.createElement('div');
+      resultContainer.style.marginTop = '10px';
+      resultContainer.style.padding = '10px';
+      resultContainer.style.backgroundColor = '#e8f5e9'; // Light Green
+      resultContainer.style.borderRadius = '4px';
+      
+      const title = document.createElement('div');
+      title.textContent = '极速识别结果:';
+      title.style.fontWeight = 'bold';
+      title.style.marginBottom = '5px';
+      title.style.fontSize = '12px';
+      
+      const p = document.createElement('p');
+      p.textContent = response.text;
+      p.style.whiteSpace = 'pre-wrap';
+      
+      const copyBtn = document.createElement('button');
+      copyBtn.textContent = '📋 复制结果';
+      copyBtn.style.marginTop = '5px';
+      copyBtn.style.fontSize = '12px';
+      copyBtn.onclick = () => {
+         navigator.clipboard.writeText(response.text);
+         copyBtn.textContent = '✔️ 已复制';
+         setTimeout(() => copyBtn.textContent = '📋 复制结果', 2000);
+      };
+      
+      resultContainer.appendChild(title);
+      resultContainer.appendChild(p);
+      resultContainer.appendChild(copyBtn);
+      
+      container.appendChild(resultContainer);
+    } else {
+      alert('极速识别失败: ' + (response?.error || '未知错误'));
+    }
+  });
+}
+
+async function toggleRecording(button, container) {
+  if (!isRecording) {
+    // 开始录音
+    try {
+      const video = document.querySelector('video');
+      if (!video) throw new Error('未找到视频元素');
+      
+      // 尝试捕获音频流
+      // 注意：如果视频跨域且没有 CORS 头，这里会静音
+      const stream = video.captureStream();
+      const audioTrack = stream.getAudioTracks()[0];
+      
+      if (!audioTrack) {
+        throw new Error('无法捕获音频轨道，可能是因为版权保护或跨域限制');
+      }
+      
+      const mediaStream = new MediaStream([audioTrack]);
+      // 使用较低的比特率 (48kbps) 以确保 40 分钟的视频文件大小在 Whisper API 限制 (25MB) 之内
+      // 40 min * 60 sec * 48 kbps / 8 / 1024 = ~14 MB < 25 MB
+      const options = {
+        mimeType: 'audio/webm',
+        audioBitsPerSecond: 48000
+      };
+      
+      // 检查浏览器是否支持特定的 mimeType
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+         console.warn(`${options.mimeType} 不被支持，尝试使用默认配置`);
+         delete options.mimeType;
+      }
+      
+      mediaRecorder = new MediaRecorder(mediaStream, options);
+      
+      recordedChunks = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = async () => {
+        button.textContent = '⏳ 正在识别中...';
+        button.disabled = true;
+        
+        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+        
+        // 转换为 Base64 发送给 Background
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => {
+          const base64data = reader.result;
+          
+          chrome.runtime.sendMessage({
+            action: "transcribeAudio",
+            audioData: base64data,
+            bvid: getBVID()
+          }, (response) => {
+            button.disabled = false;
+            button.textContent = '🎙️ 开始 AI 听写';
+            
+            if (response && response.success) {
+              // 显示识别结果
+              const resultContainer = document.createElement('div');
+              resultContainer.style.marginTop = '10px';
+              resultContainer.style.padding = '10px';
+              resultContainer.style.backgroundColor = '#f0f0f0';
+              resultContainer.style.borderRadius = '4px';
+              
+              const p = document.createElement('p');
+              p.textContent = response.text;
+              p.style.whiteSpace = 'pre-wrap';
+              
+              const copyBtn = document.createElement('button');
+              copyBtn.textContent = '📋 复制结果';
+              copyBtn.style.marginTop = '5px';
+              copyBtn.style.fontSize = '12px';
+              copyBtn.onclick = () => {
+                 navigator.clipboard.writeText(response.text);
+                 copyBtn.textContent = '✔️ 已复制';
+                 setTimeout(() => copyBtn.textContent = '📋 复制结果', 2000);
+              };
+              
+              resultContainer.appendChild(p);
+              resultContainer.appendChild(copyBtn);
+              
+              // 插入到按钮后面
+              if (container.lastChild.tagName === 'DIV' && container.lastChild.className !== 'subtitleContainer') { // simple check
+                 container.appendChild(resultContainer);
+              } else {
+                 container.appendChild(resultContainer);
+              }
+              
+            } else {
+              alert('识别失败: ' + (response?.error || '未知错误'));
+            }
+          });
+        };
+      };
+      
+      mediaRecorder.start();
+      isRecording = true;
+      button.textContent = '⏹️ 停止并识别';
+      button.style.backgroundColor = '#ff4d4f';
+      
+      // 如果视频没播放，自动播放
+      if (video.paused) {
+        video.play();
+      }
+      
+    } catch (e) {
+      console.error(e);
+      alert('无法启动录音: ' + e.message + '\n请确保您在扩展选项中配置了 OpenAI API Key。');
+    }
+  } else {
+    // 停止录音
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+    isRecording = false;
+  }
+}
+
 
 // 使用 MutationObserver 监听页面变化
 function observePageChanges() {
@@ -146,6 +475,7 @@ function observePageChanges() {
 // 初始化函数
 function initialize() {
   console.log("初始化B站字幕助手");
+  apiTried = false; // 重置 API 尝试状态
   observePageChanges();
 }
 
@@ -217,23 +547,78 @@ function displaySubtitles(subtitles) {
   copyButton.style.fontSize = '12px'; // 设置按钮文字大小为12px
   copyButton.onclick = () => copySubtitlesToClipboard(subtitles, copyButton, showTimestamp);
 
-  // 创建转换为文章按钮
-  const convertToArticleButton = document.createElement('button');
-  convertToArticleButton.textContent = '📝 转文章';
-  convertToArticleButton.style.marginRight = '12px';
-  convertToArticleButton.style.fontSize = '12px'; // 设置按钮文字大小为12px
+  // 创建转换为文章按钮 (AI 生成)
+  const aiGenerateButton = document.createElement('button');
+  aiGenerateButton.textContent = '✨ AI 生成';
+  aiGenerateButton.style.marginRight = '12px';
+  aiGenerateButton.style.fontSize = '12px'; 
+  aiGenerateButton.style.position = 'relative'; // 为下拉菜单做准备
   
-  // 检查是否已有转换好的文章
+  // 创建下拉菜单容器
+  const dropdownMenu = document.createElement('div');
+  dropdownMenu.style.display = 'none';
+  dropdownMenu.style.position = 'absolute';
+  dropdownMenu.style.top = '100%';
+  dropdownMenu.style.left = '0';
+  dropdownMenu.style.backgroundColor = 'white';
+  dropdownMenu.style.border = '1px solid #ccc';
+  dropdownMenu.style.borderRadius = '4px';
+  dropdownMenu.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+  dropdownMenu.style.zIndex = '1000';
+  dropdownMenu.style.minWidth = '120px';
+  dropdownMenu.style.marginTop = '5px';
+
+  // 菜单项配置
+  const menuItems = [
+    { text: '📝 逐字稿', type: 'article' },
+    { text: '📋 视频纪要', type: 'summary' },
+    { text: '💡 观点提取', type: 'insight' }
+  ];
+
+  menuItems.forEach(item => {
+    const menuItem = document.createElement('div');
+    menuItem.textContent = item.text;
+    menuItem.style.padding = '8px 12px';
+    menuItem.style.cursor = 'pointer';
+    menuItem.style.fontSize = '12px';
+    menuItem.style.color = '#333';
+    menuItem.style.transition = 'background-color 0.2s';
+    
+    menuItem.onmouseover = () => menuItem.style.backgroundColor = '#f5f5f5';
+    menuItem.onmouseout = () => menuItem.style.backgroundColor = 'white';
+    
+    menuItem.onclick = (e) => {
+        e.stopPropagation();
+        dropdownMenu.style.display = 'none';
+        convertToArticle(subtitles, aiGenerateButton, item.type);
+    };
+    
+    dropdownMenu.appendChild(menuItem);
+  });
+
+  aiGenerateButton.appendChild(dropdownMenu);
+  
+  // 点击按钮切换菜单显示
+  aiGenerateButton.onclick = (e) => {
+      e.stopPropagation();
+      dropdownMenu.style.display = dropdownMenu.style.display === 'block' ? 'none' : 'block';
+  };
+  
+  // 点击外部关闭菜单
+  document.addEventListener('click', () => {
+      dropdownMenu.style.display = 'none';
+  });
+
+  // 检查是否已有转换好的内容 (默认检查 article)
   const bvid = getBVID();
   if (bvid) {
     chrome.storage.local.get([`article_${bvid}`], (result) => {
       if (result[`article_${bvid}`]) {
-        convertToArticleButton.textContent = '📄 查看文章';
+         // 如果有已生成的内容，稍微改变样式提示用户，但不改变按钮文字以保持通用性
+         aiGenerateButton.style.border = '1px solid #4caf50';
       }
     });
   }
-  
-  convertToArticleButton.onclick = () => convertToArticle(subtitles, convertToArticleButton);
 
   // 创建定位到当前视频字幕的位置按钮
   const focusButton = document.createElement('button');
@@ -254,7 +639,7 @@ function displaySubtitles(subtitles) {
 
   buttonBar.appendChild(toggleTimestampButton);
   buttonBar.appendChild(copyButton);
-  buttonBar.appendChild(convertToArticleButton);
+  buttonBar.appendChild(aiGenerateButton);
   buttonBar.appendChild(focusButton);
   buttonBar.appendChild(toggleFoldButton);
 
@@ -378,140 +763,130 @@ function displaySubtitles(subtitles) {
     }
   }
 
-  // 转换为文章的函数
-  function convertToArticle(subtitles, button) {
-    // 获取当前视频的BVID
+  // 转换字幕为文章/纪要/观点
+  async function convertToArticle(subtitles, button, promptType = 'article') {
+    // 检查是否已有转换好的内容
     const bvid = getBVID();
-    if (!bvid) {
-      alert('无法获取视频ID，请刷新页面重试');
-      return;
-    }
+    const storageKey = `ai_result_${bvid}_${promptType}`;
     
-    // 检查是否已经有转换好的文章
-    chrome.storage.local.get([`article_${bvid}`], (result) => {
-      if (result[`article_${bvid}`]) {
-        // 如果已有文章，直接显示
-        showArticleResult(result[`article_${bvid}`], button);
+    // 如果是默认的 article 类型，兼容旧的 key
+    const legacyKey = `article_${bvid}`;
+    
+    chrome.storage.local.get([storageKey, legacyKey], (result) => {
+      const cachedContent = result[storageKey] || (promptType === 'article' ? result[legacyKey] : null);
+      
+      if (cachedContent) {
+        showArticleModal(cachedContent, promptType);
         return;
       }
       
-      // 如果没有文章，开始转换
-      const subtitleText = subtitles.map(subtitle => subtitle.content).join('\n');
+      // 如果没有缓存，开始生成
+      const subtitleText = subtitles.map(s => s.content).join('\n');
       
-      // 显示加载状态
-      button.textContent = '⏳ 转换中...';
+      const originalText = button.firstChild.textContent; // 保存原始按钮文本 (忽略 dropdown)
+      button.firstChild.textContent = '⏳ 生成中...';
       button.disabled = true;
-      
-      // 发送消息给background script处理转换
+
       chrome.runtime.sendMessage({
         action: "convertToArticle",
         subtitleText: subtitleText,
-        bvid: bvid
+        bvid: bvid,
+        promptType: promptType
       }, (response) => {
+        button.disabled = false;
+        button.firstChild.textContent = originalText;
+        
         if (response && response.success) {
-          // 保存文章到本地存储
-          chrome.storage.local.set({ [`article_${bvid}`]: response.article }, () => {
-            // 创建文章显示区域
-            showArticleResult(response.article, button);
-          });
+          // 保存结果
+          const dataToSave = {};
+          dataToSave[storageKey] = response.article;
+          // 如果是 article 类型，同时也更新 legacy key 以保持兼容
+          if (promptType === 'article') {
+               dataToSave[legacyKey] = response.article;
+          }
+          chrome.storage.local.set(dataToSave);
+          
+          showArticleModal(response.article, promptType);
         } else {
-          // 显示错误信息
-          button.textContent = '❌ 转换失败';
-          setTimeout(() => {
-            button.textContent = '📝 转文章';
-            button.disabled = false;
-          }, 2000);
-          alert('转换失败：' + (response?.error || '未知错误'));
+          alert('生成失败: ' + (response?.error || '未知错误'));
         }
       });
     });
   }
 
-  // 显示文章结果的函数
-  function showArticleResult(article, button) {
-    // 更新按钮状态和文本
-    button.textContent = '📄 查看文章';
-    button.disabled = false;
-    
-    // 创建文章显示模态框
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 10000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    `;
-    
-    const modalContent = document.createElement('div');
-    modalContent.style.cssText = `
-      background-color: white;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 80%;
-      max-height: 80%;
-      overflow-y: auto;
-      position: relative;
-    `;
-    
-    const closeButton = document.createElement('button');
-    closeButton.textContent = '✕';
-    closeButton.style.cssText = `
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: none;
-      border: none;
-      font-size: 20px;
-      cursor: pointer;
-      color: #666;
-    `;
-    closeButton.onclick = () => document.body.removeChild(modal);
-    
-    const copyArticleButton = document.createElement('button');
-    copyArticleButton.textContent = '📋 复制文章';
-    copyArticleButton.style.cssText = `
-      margin-bottom: 15px;
-      padding: 8px 16px;
-      background-color: #00a1d6;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    `;
-    copyArticleButton.onclick = () => {
-      const tempTextArea = document.createElement('textarea');
-      tempTextArea.value = article;
-      document.body.appendChild(tempTextArea);
-      tempTextArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(tempTextArea);
-      copyArticleButton.textContent = '✔️ 复制成功';
-      setTimeout(() => {
-        copyArticleButton.textContent = '📋 复制文章';
-      }, 2000);
-    };
-    
-    const articleContent = document.createElement('div');
-    articleContent.style.cssText = `
-      white-space: pre-wrap;
-      line-height: 1.6;
-      font-size: 14px;
-      margin-top: 10px;
-    `;
-    articleContent.textContent = article;
-    
-    modalContent.appendChild(closeButton);
-    modalContent.appendChild(copyArticleButton);
-    modalContent.appendChild(articleContent);
-    modal.appendChild(modalContent);
-    document.body.appendChild(modal);
+  function showArticleModal(content, type) {
+      let title = '逐字稿文章';
+      if (type === 'summary') title = '视频纪要';
+      if (type === 'insight') title = '观点提取';
+
+      // 创建模态框
+      const modal = document.createElement('div');
+      modal.style.position = 'fixed';
+      modal.style.top = '0';
+      modal.style.left = '0';
+      modal.style.width = '100%';
+      modal.style.height = '100%';
+      modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+      modal.style.display = 'flex';
+      modal.style.justifyContent = 'center';
+      modal.style.alignItems = 'center';
+      modal.style.zIndex = '10000';
+      
+      const modalContent = document.createElement('div');
+      modalContent.style.backgroundColor = 'white';
+      modalContent.style.padding = '20px';
+      modalContent.style.borderRadius = '8px';
+      modalContent.style.width = '80%';
+      modalContent.style.maxWidth = '800px';
+      modalContent.style.maxHeight = '80%';
+      modalContent.style.overflowY = 'auto';
+      modalContent.style.position = 'relative';
+      
+      const closeBtn = document.createElement('span');
+      closeBtn.innerHTML = '&times;';
+      closeBtn.style.position = 'absolute';
+      closeBtn.style.top = '10px';
+      closeBtn.style.right = '20px';
+      closeBtn.style.fontSize = '24px';
+      closeBtn.style.cursor = 'pointer';
+      closeBtn.onclick = () => document.body.removeChild(modal);
+      
+      const header = document.createElement('h2');
+      header.textContent = title;
+      header.style.marginTop = '0';
+      
+      const contentDiv = document.createElement('div');
+      contentDiv.style.whiteSpace = 'pre-wrap';
+      contentDiv.style.lineHeight = '1.6';
+      // 简单的 Markdown 渲染 (粗体和列表)
+      let formattedContent = content
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/^-\s/gm, '• ');
+          
+      contentDiv.innerHTML = formattedContent;
+      
+      const copyBtn = document.createElement('button');
+      copyBtn.textContent = '📋 复制内容';
+      copyBtn.style.marginTop = '20px';
+      copyBtn.style.padding = '8px 16px';
+      copyBtn.style.backgroundColor = '#00a1d6';
+      copyBtn.style.color = 'white';
+      copyBtn.style.border = 'none';
+      copyBtn.style.borderRadius = '4px';
+      copyBtn.style.cursor = 'pointer';
+      copyBtn.onclick = () => {
+          navigator.clipboard.writeText(content);
+          copyBtn.textContent = '✔️ 已复制';
+          setTimeout(() => copyBtn.textContent = '📋 复制内容', 2000);
+      };
+      
+      modalContent.appendChild(closeBtn);
+      modalContent.appendChild(header);
+      modalContent.appendChild(contentDiv);
+      modalContent.appendChild(copyBtn);
+      modal.appendChild(modalContent);
+      
+      document.body.appendChild(modal);
   }
 }
 

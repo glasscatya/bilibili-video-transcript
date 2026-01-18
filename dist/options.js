@@ -20,7 +20,7 @@ function setupModelSelection() {
 
 // 加载设置
 function loadSettings() {
-  chrome.storage.sync.get(['apiEndpoint', 'apiKey', 'model', 'customModel'], (result) => {
+  chrome.storage.sync.get(['apiEndpoint', 'apiKey', 'model', 'customModel', 'audioModel'], (result) => {
     if (result.apiEndpoint) {
       document.getElementById('apiEndpoint').value = result.apiEndpoint;
     }
@@ -36,6 +36,9 @@ function loadSettings() {
     if (result.customModel) {
       document.getElementById('customModel').value = result.customModel;
     }
+    if (result.audioModel) {
+      document.getElementById('audioModel').value = result.audioModel;
+    }
   });
 }
 
@@ -45,6 +48,7 @@ function saveSettings() {
   const apiKey = document.getElementById('apiKey').value.trim();
   const model = document.getElementById('model').value;
   const customModel = document.getElementById('customModel').value.trim();
+  const audioModel = document.getElementById('audioModel').value.trim() || 'whisper-1';
   
   // 验证输入
   if (!apiEndpoint) {
@@ -76,7 +80,8 @@ function saveSettings() {
   const saveData = {
     apiEndpoint: apiEndpoint,
     apiKey: apiKey,
-    model: model
+    model: model,
+    audioModel: audioModel
   };
   
   if (model === 'custom') {

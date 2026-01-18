@@ -22,36 +22,24 @@ bilibili-video-transcript/
 ├── README.md              # 说明文档
 ├── LICENSE                # 许可证
 ├── Demo.png               # 演示图片
-├── package.bat            # Windows打包脚本
-├── package.sh             # Linux/macOS打包脚本
+├── package.ps1            # 打包脚本 (PowerShell)
 └── PACKAGE_GUIDE.md       # 本指南
 ```
 
 ## 自动打包方法
 
-### Windows用户
+### Windows 用户 (推荐)
 
-1. 双击运行 `package.bat` 文件
-2. 脚本会自动检查文件完整性并创建打包
+1. 打开 PowerShell
+2. 运行以下命令：
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File package.ps1
+   ```
 3. 打包完成后会在项目根目录生成：
    - `dist/` 文件夹（插件目录）
-   - `bilibili-video-transcript-v1.1.0.zip`（压缩包）
+   - `bilibili-video-transcript-v1.2.0.zip`（压缩包）
 
-### Linux/macOS用户
-
-1. 给脚本添加执行权限：
-   ```bash
-   chmod +x package.sh
-   ```
-
-2. 运行打包脚本：
-   ```bash
-   ./package.sh
-   ```
-
-3. 打包完成后会在项目根目录生成：
-   - `dist/` 文件夹（插件目录）
-   - `bilibili-video-transcript-v1.1.0.zip`（压缩包）
+注意：脚本会自动检查必要文件，如果缺失会提示错误。
 
 ## 手动打包方法
 
@@ -85,17 +73,7 @@ cp Demo.png dist/
 
 ### 3. 创建ZIP压缩包
 
-#### Windows (PowerShell)
-```powershell
-Compress-Archive -Path "dist\*" -DestinationPath "bilibili-video-transcript-v1.1.0.zip" -Force
-```
-
-#### Linux/macOS
-```bash
-cd dist
-zip -r "../bilibili-video-transcript-v1.1.0.zip" .
-cd ..
-```
+将 `dist` 目录下的所有文件压缩为 ZIP 格式。
 
 ## 安装插件
 
@@ -110,7 +88,7 @@ cd ..
 
 ### 从ZIP文件安装
 
-1. 解压 `bilibili-video-transcript-v1.1.0.zip` 文件
+1. 解压生成的 ZIP 文件
 2. 按照上述"开发模式安装"步骤操作
 3. 选择解压后的文件夹
 
@@ -155,12 +133,6 @@ A:
 2. 确认插件权限是否正确
 3. 验证API配置是否正确（如果使用AI转换功能）
 
-### Q: 如何更新插件
-A: 
-1. 修改代码后重新打包
-2. 在Chrome扩展管理页面点击"重新加载"
-3. 或者卸载后重新安装
-
 ### Q: 插件图标不显示
 A: 
 1. 确认 `icon.svg` 文件存在且格式正确
@@ -171,15 +143,6 @@ A:
 建议在发布新版本时：
 
 1. 更新 `manifest.json` 中的版本号
-2. 更新打包脚本中的版本号
+2. 更新打包脚本中的版本号 (`package.ps1`)
 3. 记录版本变更日志
 4. 测试所有功能是否正常
-
-## 技术支持
-
-如果在打包过程中遇到问题，请：
-
-1. 检查文件完整性
-2. 查看Chrome开发者工具的错误信息
-3. 确认Chrome版本兼容性
-4. 参考Chrome扩展开发文档 

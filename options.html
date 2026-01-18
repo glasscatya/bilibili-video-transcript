@@ -123,9 +123,29 @@
       </div>
       
       <div class="form-group" id="customModelGroup" style="display: none;">
-        <label for="customModel">自定义模型名称</label>
+        <label for="customModel">自定义文本模型名称</label>
         <input type="text" id="customModel" placeholder="例如: my-model-v1">
-        <div class="help-text">输入您的自定义模型名称</div>
+        <div class="help-text">输入您的自定义文本模型名称</div>
+      </div>
+
+      <div class="form-group">
+        <label for="audioModel">音频识别模型 (Whisper API)</label>
+        <input type="text" id="audioModel" placeholder="默认: whisper-1" value="whisper-1">
+        <div class="help-text">
+          <p>默认使用 OpenAI 官方模型 <code>whisper-1</code>。</p>
+          <p><strong>如何使用第三方模型 (如 DeepSeek/豆包/智谱等)：</strong></p>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li><strong>前提</strong>：服务商必须提供兼容 <code>OpenAI v1/audio/transcriptions</code> 接口的服务。</li>
+            <li><strong>配置步骤</strong>：
+              <ol style="margin: 5px 0; padding-left: 20px;">
+                <li><strong>API 端点</strong>：填入服务商的 Base URL (例如 <code>https://api.deepseek.com/v1</code>)。</li>
+                <li><strong>API 密钥</strong>：填入该服务商的 API Key。</li>
+                <li><strong>音频识别模型</strong>：填入该服务商支持的语音模型名称 (如 <code>whisper-large-v3</code>, <code>doubao-asr</code>, <code>glm-4-voice</code> 等)。</li>
+              </ol>
+            </li>
+            <li>如果服务商完全兼容 Whisper 接口，模型名称通常保持 <code>whisper-1</code> 即可。</li>
+          </ul>
+        </div>
       </div>
       
       

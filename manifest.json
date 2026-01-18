@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "bilibili视频文稿助手",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "default_locale": "zh_CN",
   "icons": {
     "128": "icon.svg"
