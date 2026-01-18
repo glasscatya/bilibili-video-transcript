@@ -51,7 +51,21 @@ Copy-Item "Demo.png" $PACKAGE_DIR
 
 # Create ZIP file
 Write-Host "Creating ZIP archive..." -ForegroundColor Yellow
-$zipPath = "bilibili-video-transcript-v1.2.0.zip"
+
+# Get version from manifest.json
+try {
+    $manifest = Get-Content "manifest.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+    $version = $manifest.version
+    if (-not $version) {
+        throw "Version not found in manifest.json"
+    }
+} catch {
+    Write-Host "Error reading version from manifest.json: $_" -ForegroundColor Red
+    exit 1
+}
+
+$zipPath = "bilibili-video-transcript-v$version.zip"
+
 if (Test-Path $zipPath) {
     Remove-Item $zipPath -Force
 }

@@ -28,18 +28,9 @@ Bilibili 视频文稿助手(bilibili-video-transcript)
 
 ## 安装
 
-### Edge 浏览器
+### 浏览器
 
-Edge 浏览器，可至插件商店下载。
-
-1. 打开浏览器的插件商店。
-2. 搜索[“Bilibili 视频文稿助手”](https://microsoftedge.microsoft.com/addons/detail/bilibili%E8%A7%86%E9%A2%91%E6%96%87%E7%A8%BF%E5%8A%A9%E6%89%8B/nbgmggaolhiphnfblaognehbfhfpndol)。
-3. 点击“添加到浏览器”按钮。
-4. 按照提示完成安装。
-
-### Chrome 浏览器
-
-暂未上架 Chrome 插件商店，可按照以下流程安装：
+插件商店，可按照以下流程安装：
 
 1. 点击[此链接](https://github.com/glasscatya/bilibili-video-transcript/releases/)。
 2. 下载 bilibili-video-transcript.zip，并解压。
