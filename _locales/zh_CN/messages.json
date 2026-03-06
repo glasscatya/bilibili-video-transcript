@@ -1,0 +1,50 @@
+{
+    "hello_message": {
+      "message": "你好！",
+      "description": "问候语"
+    },
+    "empty_state_idle_title": {
+      "message": "暂无字幕内容",
+      "description": "空状态标题：初始空闲"
+    },
+    "empty_state_idle_desc": {
+      "message": "点击“加载字幕”开始加载",
+      "description": "空状态描述：初始空闲"
+    },
+    "empty_state_loading_title": {
+      "message": "字幕加载中...",
+      "description": "空状态标题：加载中"
+    },
+    "empty_state_loading_desc": {
+      "message": "正在请求字幕列表",
+      "description": "空状态描述：加载中"
+    },
+    "empty_state_no_subtitle_title": {
+      "message": "本视频暂无可用字幕",
+      "description": "空状态标题：无字幕"
+    },
+    "empty_state_no_subtitle_desc": {
+      "message": "可能未上传或已关闭字幕",
+      "description": "空状态描述：无字幕"
+    },
+    "empty_state_error_title": {
+      "message": "字幕获取失败",
+      "description": "空状态标题：错误"
+    },
+    "empty_state_error_desc": {
+      "message": "请稍后重试或刷新页面",
+      "description": "空状态描述：错误"
+    },
+    "footer_star_prompt_prefix": {
+      "message": "如果插件对你有帮助，欢迎给个",
+      "description": "页脚提示前缀"
+    },
+    "footer_star_link_text": {
+      "message": "star",
+      "description": "页脚提示链接文本"
+    },
+    "footer_star_prompt_suffix": {
+      "message": "！",
+      "description": "页脚提示后缀"
+    }
+  }

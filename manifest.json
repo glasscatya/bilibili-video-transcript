@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "bilibili视频文稿助手",
+  "version": "2.0.0",
+  "default_locale": "zh_CN",
+  "description": "将bilibili视频逐字稿显示在您的网页中，以便于快速浏览内容，或是复习记录与回顾。",
+  "permissions": [
+    "webRequest",
+    "activeTab",
+    "tabs",
+    "webNavigation",
+    "scripting"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.bilibili.com/video/*",
+        "https://www.bilibili.com/list/watchlater*"
+      ],
+      "js": [
+        "logger.js",
+        "content-utils.js",
+        "content-ui.js",
+        "content-subtitle.js",
+        "content.js"
+      ]
+    }
+  ]
+}

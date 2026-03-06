@@ -1,0 +1,4 @@
+.opencode/
+*.old
+.claude/
+CLAUDE.md
