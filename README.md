@@ -1,6 +1,6 @@
 # Bilibili 视频文稿助手
 
-[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)](https://github.com/glasscatya/bilibili-video-transcript/releases)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/glasscatya/bilibili-video-transcript/releases)
 [![License](https://img.shields.io/badge/license-GPL%20v3.0-green.svg)](LICENSE)
 [![Edge](https://img.shields.io/badge/Edge-商店-0078D7.svg)](https://microsoftedge.microsoft.com/addons/detail/bilibili%E8%A7%86%E9%A2%91%E6%96%87%E7%A8%BF%E5%8A%A9%E6%89%8B/nbgmggaolhiphnfblaognehbfhfpndol)
 [![Chrome](https://img.shields.io/badge/Chrome-审核中-yellow.svg)](https://github.com/glasscatya/bilibili-video-transcript/releases/)

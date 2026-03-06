@@ -1,0 +1,106 @@
+name: Create GitHub Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_name:
+        description: Release title, defaults to "<version>发布"
+        required: false
+        type: string
+      draft:
+        description: Create release as draft
+        required: false
+        default: false
+        type: boolean
+      prerelease:
+        description: Mark release as prerelease
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Read release metadata
+        id: meta
+        env:
+          RELEASE_NAME_INPUT: ${{ github.event.inputs.release_name }}
+        shell: bash
+        run: |
+          version=$(python - <<'PY'
+          import json
+          with open('manifest.json', 'r', encoding='utf-8') as handle:
+              print(json.load(handle)['version'])
+          PY
+          )
+          tag="v${version}"
+          release_name="${RELEASE_NAME_INPUT}"
+          if [[ -z "${release_name}" ]]; then
+            release_name="${version}发布"
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "release_name=${release_name}" >> "$GITHUB_OUTPUT"
+          echo "asset_name=bilibili-video-transcript-${version}.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure release version is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          tag="${{ steps.meta.outputs.tag }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "Tag ${tag} already exists on origin. Please bump manifest.json version before releasing."
+            exit 1
+          fi
+
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            echo "Release ${tag} already exists."
+            exit 1
+          fi
+
+      - name: Package extension
+        run: python scripts/package_extension.py
+
+      - name: Upload packaged artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-${{ steps.meta.outputs.version }}
+          path: dist/${{ steps.meta.outputs.asset_name }}
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IS_DRAFT: ${{ github.event.inputs.draft }}
+          IS_PRERELEASE: ${{ github.event.inputs.prerelease }}
+        shell: bash
+        run: |
+          args=()
+          if [[ "${IS_DRAFT}" == 'true' ]]; then
+            args+=(--draft)
+          fi
+          if [[ "${IS_PRERELEASE}" == 'true' ]]; then
+            args+=(--prerelease)
+          fi
+
+          gh release create "${{ steps.meta.outputs.tag }}" "dist/${{ steps.meta.outputs.asset_name }}" \
+            --target "${GITHUB_SHA}" \
+            --title "${{ steps.meta.outputs.release_name }}" \
+            --generate-notes \
+            "${args[@]}"

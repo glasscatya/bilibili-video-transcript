@@ -2,3 +2,5 @@
 *.old
 .claude/
 CLAUDE.md
+dist/
+
