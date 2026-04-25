@@ -26,8 +26,8 @@ window.BilibiliSubtitle.getMessage = function(key, fallback) {
  * 从当前页面URL中提取BVID
  */
 window.BilibiliSubtitle.getBVID = function() {
-  // 处理watchlater列表页面
-  if (window.location.pathname === '/list/watchlater') {
+  // 处理watchlater列表页面（兼容尾部斜杠及子路径）
+  if (window.location.pathname.startsWith('/list/watchlater')) {
     const urlParams = new URLSearchParams(window.location.search)
     return urlParams.get('bvid')
   }
