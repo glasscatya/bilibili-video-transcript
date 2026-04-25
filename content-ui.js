@@ -659,11 +659,13 @@ window.BilibiliSubtitle.displaySubtitles = function(subtitles, emptyStateKey) {
       timeElement.style.fontSize = '14px'
       timeElement.onclick = () => window.BilibiliSubtitle.jumpToTime(subtitle.from)
 
-      const p = document.createElement('p')
-      p.style.color = 'var(--text-primary, #2f343a)'
-      p.appendChild(timeElement)
-      p.appendChild(document.createTextNode(subtitle.content))
-      subtitleContainer.appendChild(p)
+      // 使用 div 替代 p，避免浏览器手动复制时在段落间插入额外空行
+      const line = document.createElement('div')
+      line.style.color = 'var(--text-primary, #2f343a)'
+      line.style.marginBottom = '2px'
+      line.appendChild(timeElement)
+      line.appendChild(document.createTextNode(subtitle.content))
+      subtitleContainer.appendChild(line)
     })
   }
 }
@@ -736,7 +738,7 @@ window.BilibiliSubtitle.focusCurrentSubtitle = function(subtitles, subtitleConta
   })
 
   if (closestSubtitle) {
-    const subtitleElements = subtitleContainer.querySelectorAll('p')
+    const subtitleElements = subtitleContainer.querySelectorAll('div')
     let highlightTimeout = null
 
     subtitleElements.forEach((element) => {
