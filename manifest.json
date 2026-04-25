@@ -4,6 +4,12 @@
   "version": "2.0.0",
   "default_locale": "zh_CN",
   "description": "将bilibili视频逐字稿显示在您的网页中，以便于快速浏览内容，或是复习记录与回顾。",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": [
     "webRequest",
     "activeTab",
@@ -14,6 +20,14 @@
   "host_permissions": [
     "<all_urls>"
   ],
+  "action": {
+    "default_title": "Bilibili 视频文稿助手",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    }
+  },
   "background": {
     "service_worker": "background.js"
   },
