@@ -652,6 +652,7 @@ window.BilibiliSubtitle.displaySubtitles = function(subtitles, emptyStateKey) {
     subtitles.forEach(subtitle => {
       const time = window.BilibiliSubtitle.formatTime(subtitle.from)
       const timeElement = document.createElement('span')
+      timeElement.className = 'subtitle-time'
       timeElement.textContent = time
       timeElement.style.color = 'var(--accent-primary, #00b8f6)'
       timeElement.style.marginRight = '14px'
@@ -661,6 +662,7 @@ window.BilibiliSubtitle.displaySubtitles = function(subtitles, emptyStateKey) {
 
       // 使用 div 替代 p，避免浏览器手动复制时在段落间插入额外空行
       const line = document.createElement('div')
+      line.className = 'subtitle-line'
       line.style.color = 'var(--text-primary, #2f343a)'
       line.style.marginBottom = '2px'
       line.appendChild(timeElement)
@@ -675,7 +677,7 @@ window.BilibiliSubtitle.displaySubtitles = function(subtitles, emptyStateKey) {
  */
 window.BilibiliSubtitle.toggleTimestamp = function(subtitleContainer, button, showTimestamp) {
   const shouldShow = !showTimestamp
-  const timeElements = subtitleContainer.querySelectorAll('span')
+  const timeElements = subtitleContainer.querySelectorAll('.subtitle-time')
   timeElements.forEach(element => {
     element.style.display = shouldShow ? 'inline-block' : 'none'
   })
@@ -738,7 +740,7 @@ window.BilibiliSubtitle.focusCurrentSubtitle = function(subtitles, subtitleConta
   })
 
   if (closestSubtitle) {
-    const subtitleElements = subtitleContainer.querySelectorAll('div')
+    const subtitleElements = subtitleContainer.querySelectorAll('.subtitle-line')
     let highlightTimeout = null
 
     subtitleElements.forEach((element) => {
