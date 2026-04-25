@@ -135,66 +135,61 @@ window.BilibiliSubtitle.attachSubtitleSourceHints = function(subtitleList, refer
 }
 
 /**
- * 基于字幕字段判断来源（不看文案）
+ * 解析类布尔值字段（兼容字符串/数字/布尔等多种形态）
+ * 返回 true/false，无法解析时返回 null
+ */
+window.BilibiliSubtitle.parseBoolLike = function(value) {
+  if (value === true || value === false) return value
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value > 0 : null
+  }
+  if (typeof value === 'string') {
+    const t = value.trim().toLowerCase()
+    if (t === 'true') return true
+    if (t === 'false') return false
+    const n = Number(t)
+    if (Number.isFinite(n)) return n > 0
+  }
+  return null
+}
+
+/**
+ * 基于字幕字段判断来源
  */
 window.BilibiliSubtitle.detectSubtitleSourceByFields = function(subtitle) {
   if (!subtitle) return window.BilibiliSubtitle.SUBTITLE_SOURCE.UNKNOWN
 
-  if (
-    subtitle.source === window.BilibiliSubtitle.SUBTITLE_SOURCE.HUMAN ||
-    subtitle.source === window.BilibiliSubtitle.SUBTITLE_SOURCE.AI ||
-    subtitle.source === window.BilibiliSubtitle.SUBTITLE_SOURCE.UNKNOWN
-  ) {
-    return subtitle.source
+  const s = subtitle
+  const SOURCE = window.BilibiliSubtitle.SUBTITLE_SOURCE
+
+  if ([SOURCE.HUMAN, SOURCE.AI, SOURCE.UNKNOWN].includes(s.source)) {
+    return s.source
   }
 
-  const typeNum = window.BilibiliSubtitle.parseNumber(subtitle.type)
-  if (typeNum === 1) return window.BilibiliSubtitle.SUBTITLE_SOURCE.AI
-  if (typeNum === 0) return window.BilibiliSubtitle.SUBTITLE_SOURCE.HUMAN
+  const n = window.BilibiliSubtitle.parseNumber
 
-  const aiStatusNum = window.BilibiliSubtitle.parseNumber(subtitle.ai_status)
-  if (aiStatusNum !== null && aiStatusNum > 0) return window.BilibiliSubtitle.SUBTITLE_SOURCE.AI
+  if (n(s.type) === 1) return SOURCE.AI
+  if (n(s.type) === 0) return SOURCE.HUMAN
+  if (n(s.ai_status) > 0 || n(s.ai_type) > 0) return SOURCE.AI
 
-  const aiTypeNum = window.BilibiliSubtitle.parseNumber(subtitle.ai_type)
-  if (aiTypeNum !== null && aiTypeNum > 0) return window.BilibiliSubtitle.SUBTITLE_SOURCE.AI
+  if ((s.lan || '').toLowerCase().startsWith('ai-')) return SOURCE.AI
 
-  const languageCode = (subtitle.lan || '').toLowerCase()
-  if (languageCode.startsWith('ai-')) return window.BilibiliSubtitle.SUBTITLE_SOURCE.AI
-
-  const subtitleUrl = (subtitle.subtitle_url || '').toLowerCase()
-  if (
-    subtitleUrl.includes('aisubtitle.hdslb.com') ||
-    subtitleUrl.includes('/ai_subtitle/') ||
-    subtitleUrl.includes('/aisubtitle/')
-  ) {
-    return window.BilibiliSubtitle.SUBTITLE_SOURCE.AI
+  const url = (s.subtitle_url || '').toLowerCase()
+  if (['aisubtitle.hdslb.com', '/ai_subtitle/', '/aisubtitle/'].some(k => url.includes(k))) {
+    return SOURCE.AI
   }
 
-  const boolLikeAiFields = ['is_ai', 'is_ai_subtitle', 'is_machine']
-  const boolAiSignals = boolLikeAiFields
-    .map((field) => subtitle[field])
-    .filter((value) => value !== null && value !== undefined)
-    .map((value) => {
-      if (value === true) return true
-      if (value === false) return false
-      if (typeof value === 'number') return value > 0
-      if (typeof value === 'string') {
-        const normalized = value.trim().toLowerCase()
-        if (normalized === 'true') return true
-        if (normalized === 'false') return false
-        const numericValue = Number(normalized)
-        if (Number.isFinite(numericValue)) return numericValue > 0
-      }
-      return null
-    })
-    .filter((value) => value !== null)
+  const boolFields = ['is_ai', 'is_ai_subtitle', 'is_machine']
+  const signals = boolFields
+    .map(f => window.BilibiliSubtitle.parseBoolLike(s[f]))
+    .filter(v => v !== null)
 
-  if (boolAiSignals.includes(true)) return window.BilibiliSubtitle.SUBTITLE_SOURCE.AI
-  if (boolAiSignals.length > 0 && boolAiSignals.every((value) => value === false)) {
-    return window.BilibiliSubtitle.SUBTITLE_SOURCE.HUMAN
+  if (signals.includes(true)) return SOURCE.AI
+  if (signals.length > 0 && signals.every(v => v === false)) {
+    return SOURCE.HUMAN
   }
 
-  return window.BilibiliSubtitle.SUBTITLE_SOURCE.UNKNOWN
+  return SOURCE.UNKNOWN
 }
 
 /**
