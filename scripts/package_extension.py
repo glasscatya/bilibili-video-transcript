@@ -123,10 +123,6 @@ def collect_paths(manifest: dict) -> list[str]:
             if isinstance(resource, str):
                 add_file_or_glob(resource, paths, missing)
 
-    for extra in ('README.md', 'LICENSE'):
-        if (ROOT / extra).exists():
-            paths.add(extra)
-
     if missing:
         formatted = '\n'.join(f'- {entry}' for entry in sorted(set(missing)))
         raise FileNotFoundError(f'Manifest referenced files were not found:\n{formatted}')
@@ -146,6 +142,20 @@ def copy_path(relative_path: str, destination_root: pathlib.Path) -> None:
     shutil.copy2(source, destination)
 
 
+def apply_production_config(package_dir: pathlib.Path) -> None:
+    logger_path = package_dir / 'logger.js'
+    if not logger_path.exists():
+        return
+
+    content = logger_path.read_text(encoding='utf-8')
+    content = content.replace(
+        'window.BilibiliSubtitle.CURRENT_LOG_LEVEL = window.BilibiliSubtitle.LogLevel.DEBUG',
+        'window.BilibiliSubtitle.CURRENT_LOG_LEVEL = window.BilibiliSubtitle.LogLevel.WARN',
+    )
+    logger_path.write_text(content, encoding='utf-8')
+    print('Applied production log level (DEBUG -> WARN)')
+
+
 def create_package(dist_dir: pathlib.Path, package_name: str) -> tuple[pathlib.Path, pathlib.Path]:
     manifest = load_manifest()
     version = manifest['version']
@@ -162,10 +172,12 @@ def create_package(dist_dir: pathlib.Path, package_name: str) -> tuple[pathlib.P
     for relative_path in collect_paths(manifest):
         copy_path(relative_path, package_dir)
 
+    apply_production_config(package_dir)
+
     with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
         for file_path in sorted(package_dir.rglob('*')):
             if file_path.is_file():
-                archive.write(file_path, file_path.relative_to(dist_dir))
+                archive.write(file_path, file_path.relative_to(package_dir))
 
     return package_dir, zip_path
 

@@ -59,6 +59,15 @@ jobs:
           echo "release_name=${release_name}" >> "$GITHUB_OUTPUT"
           echo "asset_name=bilibili-video-transcript-${version}.zip" >> "$GITHUB_OUTPUT"
 
+      - name: Validate version format
+        shell: bash
+        run: |
+          version="${{ steps.meta.outputs.version }}"
+          if ! [[ "${version}" =~ ^[0-9]+(\.[0-9]+){0,3}$ ]]; then
+            echo "Invalid version format: '${version}'. Expected 1-4 dot-separated integers (e.g. 2.0.4)."
+            exit 1
+          fi
+
       - name: Ensure release version is new
         env:
           GH_TOKEN: ${{ github.token }}
