@@ -640,6 +640,13 @@ window.BilibiliSubtitle.displaySubtitles = function(subtitles, emptyStateKey) {
   if (!subtitleContainer) return
 
   // 清空现有内容
+  // 先清理可能残留的高亮 timer，避免操作已不存在的 DOM
+  if (window.BilibiliSubtitle._highlightTimeout) {
+    clearTimeout(window.BilibiliSubtitle._highlightTimeout)
+    window.BilibiliSubtitle._highlightTimeout = null
+  }
+  window.BilibiliSubtitle._highlightedElements = null
+
   subtitleContainer.innerHTML = ''
 
   // 添加字幕内容或空提示
@@ -739,30 +746,52 @@ window.BilibiliSubtitle.focusCurrentSubtitle = function(subtitles, subtitleConta
     }
   })
 
-  if (closestSubtitle) {
-    const subtitleElements = subtitleContainer.querySelectorAll('.subtitle-line')
-    let highlightTimeout = null
+  if (!closestSubtitle) return
 
-    subtitleElements.forEach((element) => {
-      const timeElement = element.querySelector('span')
-      if (timeElement && timeElement.textContent === window.BilibiliSubtitle.formatTime(closestSubtitle.from)) {
-        const offsetTop = element.offsetTop
-        subtitleContainer.scrollTo({
-          top: offsetTop - (subtitleContainer.clientHeight / 2),
-          behavior: 'smooth'
-        })
+  // 1. 收集所有匹配元素
+  const subtitleElements = subtitleContainer.querySelectorAll('.subtitle-line')
+  const matchingElements = []
 
-        if (highlightTimeout) {
-          clearTimeout(highlightTimeout)
-        }
-        element.style.backgroundColor = 'var(--highlight-bg, #ffffcc)'
-        highlightTimeout = setTimeout(() => {
-          element.style.backgroundColor = ''
-          highlightTimeout = null
-        }, 2000)
-      }
+  subtitleElements.forEach((element) => {
+    const timeElement = element.querySelector('span')
+    if (timeElement && timeElement.textContent === window.BilibiliSubtitle.formatTime(closestSubtitle.from)) {
+      matchingElements.push(element)
+    }
+  })
+
+  if (matchingElements.length === 0) return
+
+  // 2. 清理上一次高亮
+  if (window.BilibiliSubtitle._highlightTimeout) {
+    clearTimeout(window.BilibiliSubtitle._highlightTimeout)
+    window.BilibiliSubtitle._highlightTimeout = null
+  }
+  if (window.BilibiliSubtitle._highlightedElements) {
+    window.BilibiliSubtitle._highlightedElements.forEach(el => {
+      el.style.backgroundColor = ''
     })
   }
+
+  // 3. 只滚动一次（到第一个匹配项）
+  subtitleContainer.scrollTo({
+    top: matchingElements[0].offsetTop - (subtitleContainer.clientHeight / 2),
+    behavior: 'smooth'
+  })
+
+  // 4. 统一高亮所有匹配项
+  matchingElements.forEach(element => {
+    element.style.backgroundColor = 'var(--highlight-bg, #ffffcc)'
+  })
+
+  // 5. 2秒后统一清除
+  window.BilibiliSubtitle._highlightedElements = matchingElements
+  window.BilibiliSubtitle._highlightTimeout = setTimeout(() => {
+    matchingElements.forEach(element => {
+      element.style.backgroundColor = ''
+    })
+    window.BilibiliSubtitle._highlightTimeout = null
+    window.BilibiliSubtitle._highlightedElements = null
+  }, 2000)
 }
 
 /**
