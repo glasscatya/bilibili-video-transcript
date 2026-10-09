@@ -1,6 +1,6 @@
 # Bilibili 视频文稿助手
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/glasscatya/bilibili-video-transcript/releases)
+[![Version](https://img.shields.io/badge/version-2.0.6-blue.svg)](https://github.com/glasscatya/bilibili-video-transcript/releases)
 [![License](https://img.shields.io/badge/license-GPL%20v3.0-green.svg)](LICENSE)
 [![Edge](https://img.shields.io/badge/Edge-商店-0078D7.svg)](https://microsoftedge.microsoft.com/addons/detail/bilibili%E8%A7%86%E9%A2%91%E6%96%87%E7%A8%BF%E5%8A%A9%E6%89%8B/nbgmggaolhiphnfblaognehbfhfpndol)
 [![Chrome](https://img.shields.io/badge/Chrome-审核中-yellow.svg)](https://github.com/glasscatya/bilibili-video-transcript/releases/)
@@ -9,6 +9,8 @@
 
 ## 简介
 本插件可以将bilibili视频逐字稿显示在您的网页中，以便于快速浏览内容，或是复习记录与回顾。
+
+本插件是非官方工具，与 Bilibili 没有隶属或授权关系。请阅读[隐私政策](https://glasscatya.github.io/bilibili-video-transcript/privacy.html)。
 
 ## 功能
 
@@ -46,7 +48,7 @@
 Chrome 商店审核中，暂时需要通过以下方式手动安装：
 
 1. 访问 [**GitHub Releases**](https://github.com/glasscatya/bilibili-video-transcript/releases/) 页面
-2. 下载 `bilibili-video-transcript.zip` 并解压
+2. 下载对应版本的 `bilibili-video-transcript-<版本号>.zip` 并解压
 3. 打开 Chrome 扩展管理页面（`chrome://extensions/`），开启 **开发者模式**
 4. 将解压后的文件夹拖拽至扩展页面完成安装
 
