@@ -6,6 +6,9 @@
 window.BilibiliSubtitle.logInfo("B站字幕助手已启动（纯API模式）")
 
 let initUITimer = null
+let initAttemptToken = 0
+let uiMutationObserver = null
+const INIT_STABILIZATION_DELAY_MS = 2000
 const INIT_RETRY_DELAY_MS = 500
 const INIT_MAX_ATTEMPTS = 30
 
@@ -15,10 +18,14 @@ function scheduleInitUI(reason) {
     initUITimer = null
   }
 
+  const attemptToken = ++initAttemptToken
+
   window.BilibiliSubtitle.logDebug(`[初始化] ${reason}`)
   let attempts = 0
 
   const attemptInit = () => {
+    if (attemptToken !== initAttemptToken) return
+
     attempts += 1
     window.BilibiliSubtitle.initUI()
 
@@ -37,17 +44,35 @@ function scheduleInitUI(reason) {
     initUITimer = setTimeout(attemptInit, INIT_RETRY_DELAY_MS)
   }
 
-  attemptInit()
+  // Bilibili 会在首屏阶段多次重建 Vue DOM。先等待一段时间，避免把容器插入临时节点。
+  initUITimer = setTimeout(attemptInit, INIT_STABILIZATION_DELAY_MS)
+}
+
+function observeUIContainer() {
+  if (uiMutationObserver || !document.body) return
+
+  uiMutationObserver = new MutationObserver(() => {
+    if (!document.getElementById('bilibili-subtitle-wrapper') && !initUITimer) {
+      scheduleInitUI('页面重建了字幕容器')
+    }
+  })
+
+  uiMutationObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+  })
 }
 
 function startInitialUIInitialization() {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+      observeUIContainer()
       scheduleInitUI('DOMContentLoaded')
     }, { once: true })
     return
   }
 
+  observeUIContainer()
   scheduleInitUI(`document.readyState=${document.readyState}`)
 }
 
