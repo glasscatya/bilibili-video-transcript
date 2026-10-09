@@ -85,13 +85,15 @@ jobs:
           fi
 
       - name: Package extension
-        run: python scripts/package_extension.py
+        run: python scripts/build_release.py
 
       - name: Upload packaged artifact
         uses: actions/upload-artifact@v4
         with:
           name: extension-${{ steps.meta.outputs.version }}
-          path: dist/${{ steps.meta.outputs.asset_name }}
+          path: |
+            dist/${{ steps.meta.outputs.asset_name }}
+            dist/${{ steps.meta.outputs.asset_name }}.sha256
 
       - name: Create GitHub release
         env:
@@ -108,7 +110,9 @@ jobs:
             args+=(--prerelease)
           fi
 
-          gh release create "${{ steps.meta.outputs.tag }}" "dist/${{ steps.meta.outputs.asset_name }}" \
+          gh release create "${{ steps.meta.outputs.tag }}" \
+            "dist/${{ steps.meta.outputs.asset_name }}" \
+            "dist/${{ steps.meta.outputs.asset_name }}.sha256" \
             --target "${GITHUB_SHA}" \
             --title "${{ steps.meta.outputs.release_name }}" \
             --generate-notes \
