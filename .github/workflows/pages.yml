@@ -30,10 +30,16 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
+      - name: Prepare public policy site
+        shell: bash
+        run: |
+          mkdir -p _site
+          cp docs/privacy.html _site/privacy.html
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
