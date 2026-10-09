@@ -707,6 +707,23 @@ window.BilibiliSubtitle.copySubtitlesToClipboard = function(subtitles, button, s
     }
   }).join('\n')
 
+  if (!textToCopy) {
+    button.textContent = '无内容'
+    setTimeout(() => {
+      button.textContent = '复制'
+    }, 2000)
+    return
+  }
+
+  if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+    window.BilibiliSubtitle.logWarn('当前页面不支持剪贴板写入')
+    button.textContent = '失败'
+    setTimeout(() => {
+      button.textContent = '复制'
+    }, 2000)
+    return
+  }
+
   navigator.clipboard.writeText(textToCopy).then(() => {
     button.textContent = '成功'
     setTimeout(() => {

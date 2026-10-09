@@ -10,16 +10,6 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "permissions": [
-    "webRequest",
-    "activeTab",
-    "tabs",
-    "webNavigation",
-    "scripting"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
   "action": {
     "default_title": "Bilibili 视频文稿助手",
     "default_icon": {
@@ -27,9 +17,6 @@
       "32": "icons/icon32.png",
       "48": "icons/icon48.png"
     }
-  },
-  "background": {
-    "service_worker": "background.js"
   },
   "content_scripts": [
     {

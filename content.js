@@ -6,24 +6,52 @@
 window.BilibiliSubtitle.logInfo("B站字幕助手已启动（纯API模式）")
 
 let initUITimer = null
+const INIT_RETRY_DELAY_MS = 500
+const INIT_MAX_ATTEMPTS = 30
 
 function scheduleInitUI(reason) {
   if (initUITimer) {
     clearTimeout(initUITimer)
+    initUITimer = null
   }
-  window.BilibiliSubtitle.logDebug(`[延迟] ${reason}，等待2秒后初始化UI...`)
-  initUITimer = setTimeout(() => {
-    window.BilibiliSubtitle.logDebug('[延迟] 开始初始化UI')
+
+  window.BilibiliSubtitle.logDebug(`[初始化] ${reason}`)
+  let attempts = 0
+
+  const attemptInit = () => {
+    attempts += 1
     window.BilibiliSubtitle.initUI()
-  }, 2000)
+
+    if (document.getElementById('bilibili-subtitle-wrapper')) {
+      initUITimer = null
+      window.BilibiliSubtitle.logInfo('B站字幕助手 UI 初始化完成')
+      return
+    }
+
+    if (attempts >= INIT_MAX_ATTEMPTS) {
+      initUITimer = null
+      window.BilibiliSubtitle.logWarn('[初始化] 等待 danmukuBox 超时')
+      return
+    }
+
+    initUITimer = setTimeout(attemptInit, INIT_RETRY_DELAY_MS)
+  }
+
+  attemptInit()
 }
 
-// 监听页面加载完成事件
-window.addEventListener('load', function() {
-  window.BilibiliSubtitle.logInfo('初始化B站字幕助手（纯API模式）')
-  // 关键：延迟2秒再初始化UI，避免与B站Vue应用冲突
-  scheduleInitUI('页面加载完成')
-})
+function startInitialUIInitialization() {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      scheduleInitUI('DOMContentLoaded')
+    }, { once: true })
+    return
+  }
+
+  scheduleInitUI(`document.readyState=${document.readyState}`)
+}
+
+startInitialUIInitialization()
 
 // 监听页面 URL 变化（使用简单的轮询，不劫持history）
 let lastVideoKey = ''
