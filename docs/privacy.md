@@ -20,7 +20,7 @@
 
 ## 权限和页面访问
 
-本扩展不声明 Chrome 扩展权限，也不声明通配符网站访问权限。内容脚本只匹配以下 Bilibili 页面：
+本扩展没有额外的扩展 API 权限，未申请全站访问权限。内容脚本仅在下列指定 Bilibili 页面运行，用于读取视频信息和显示字幕；浏览器可能提示本扩展可读取或修改这些页面中的数据：
 
 - `https://www.bilibili.com/video/*`
 - `https://www.bilibili.com/list/watchlater*`
