@@ -10,7 +10,7 @@
 ## 简介
 本插件可以将bilibili视频逐字稿显示在您的网页中，以便于快速浏览内容，或是复习记录与回顾。
 
-本插件是非官方工具，与 Bilibili 没有隶属或授权关系。请阅读[隐私政策](https://glasscatya.github.io/bilibili-video-transcript/privacy.html)。
+本插件是非官方工具，与 Bilibili 没有隶属或授权关系。请阅读[隐私政策](https://github.com/glasscatya/bilibili-video-transcript/blob/main/docs/privacy.md)。
 
 ## 功能
 

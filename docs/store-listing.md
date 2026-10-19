@@ -26,7 +26,7 @@ Bilibili 视频文稿助手将 Bilibili 视频提供的字幕显示在视频页�
 
 本扩展只在匹配的 Bilibili 视频页面运行。加载字幕时，它会向 Bilibili 官方接口请求视频和字幕信息；视频信息和字幕列表请求会使用当前浏览器的 Bilibili 会话凭据。字幕正文请求使用 Bilibili 返回的 HTTPS 字幕地址，不携带登录凭据。本扩展不会读取或保存密码、Cookie，不会读取剪贴板，也不会把数据发送到开发者服务器。用户点击复制后，当前字幕会写入系统剪贴板。
 
-公开隐私政策：<https://glasscatya.github.io/bilibili-video-transcript/privacy.html>
+公开隐私政策：<https://github.com/glasscatya/bilibili-video-transcript/blob/main/docs/privacy.md>
 
 ## 权限说明
 
