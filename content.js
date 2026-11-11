@@ -8,9 +8,16 @@ window.BilibiliSubtitle.logInfo("B站字幕助手已启动（纯API模式）")
 let initUITimer = null
 let initAttemptToken = 0
 let uiMutationObserver = null
-const INIT_STABILIZATION_DELAY_MS = 2000
 const INIT_RETRY_DELAY_MS = 500
 const INIT_MAX_ATTEMPTS = 30
+const HYDRATION_WAIT_LIMIT_MS = 60000
+
+// 视频页为服务端渲染：#app 带 data-server-rendered，Vue 在 hydration 时移除该属性。
+// hydration 完成前向 SSR 树（#danmukuBox）插入节点会导致 hydration 失败、页头消失，
+// 因此以该属性作为信号，等待其消失后再插入UI，而不是依赖固定延迟。
+function isPageHydrating() {
+  return !!document.querySelector('[data-server-rendered]')
+}
 
 function scheduleInitUI(reason) {
   if (initUITimer) {
@@ -22,9 +29,20 @@ function scheduleInitUI(reason) {
 
   window.BilibiliSubtitle.logDebug(`[初始化] ${reason}`)
   let attempts = 0
+  const scheduledAt = Date.now()
 
   const attemptInit = () => {
     if (attemptToken !== initAttemptToken) return
+
+    if (isPageHydrating()) {
+      if (Date.now() - scheduledAt >= HYDRATION_WAIT_LIMIT_MS) {
+        initUITimer = null
+        window.BilibiliSubtitle.logWarn('[初始化] 等待页面 hydration 完成超时，放弃插入')
+        return
+      }
+      initUITimer = setTimeout(attemptInit, INIT_RETRY_DELAY_MS)
+      return
+    }
 
     attempts += 1
     window.BilibiliSubtitle.initUI()
@@ -44,8 +62,7 @@ function scheduleInitUI(reason) {
     initUITimer = setTimeout(attemptInit, INIT_RETRY_DELAY_MS)
   }
 
-  // Bilibili 会在首屏阶段多次重建 Vue DOM。先等待一段时间，避免把容器插入临时节点。
-  initUITimer = setTimeout(attemptInit, INIT_STABILIZATION_DELAY_MS)
+  attemptInit()
 }
 
 function observeUIContainer() {
