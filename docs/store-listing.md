@@ -34,6 +34,7 @@ Bilibili 视频文稿助手将 Bilibili 视频提供的字幕显示在视频页�
 
 - `https://www.bilibili.com/video/*`
 - `https://www.bilibili.com/list/watchlater*`
+- `https://www.bilibili.com/list/watchlater/*`
 
 ## 非官方产品说明
 

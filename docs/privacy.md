@@ -2,7 +2,7 @@
 
 生效日期：2026-11-11
 
-“Bilibili 视频文稿助手”（以下简称“本扩展”）是一个非官方的浏览器扩展，与 Bilibili、上海哔哩哔哩科技有限公司及其关联方没有隶属、赞助或授权关系。本政策说明本扩展在用户访问 Bilibili 视频页面时如何处理信息。
+“Bilibili 视频文稿助手”（以下简称“本扩展”）是一个非官方的浏览器扩展，与 Bilibili、上海哔哩哔哩科技有限公司及其关联方没有隶属、赞助或授权关系。本扩展通过 Microsoft Edge 加载项商店与 Chrome 应用商店分发，两个商店的隐私披露与本政策一致。本政策说明本扩展在用户访问 Bilibili 视频页面时如何处理信息。
 
 ## 本扩展处理的信息
 
@@ -26,6 +26,7 @@
 
 - `https://www.bilibili.com/video/*`
 - `https://www.bilibili.com/list/watchlater*`
+- `https://www.bilibili.com/list/watchlater/*`
 
 ## 儿童隐私
 

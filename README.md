@@ -1,10 +1,10 @@
 # Bilibili 视频文稿助手
 
-[![Version](https://img.shields.io/badge/version-2.0.6-blue.svg)](https://github.com/glasscatya/bilibili-video-transcript/releases)
+[![Version](https://img.shields.io/badge/version-2.0.7-blue.svg)](https://github.com/glasscatya/bilibili-video-transcript/releases)
 [![License](https://img.shields.io/badge/license-GPL%20v3.0-green.svg)](LICENSE)
 [![Edge](https://img.shields.io/badge/Edge-商店-0078D7.svg)](https://microsoftedge.microsoft.com/addons/detail/bilibili%E8%A7%86%E9%A2%91%E6%96%87%E7%A8%BF%E5%8A%A9%E6%89%8B/nbgmggaolhiphnfblaognehbfhfpndol)
-[![Chrome](https://img.shields.io/badge/Chrome-审核中-yellow.svg)](https://github.com/glasscatya/bilibili-video-transcript/releases/)
-[![Users](https://img.shields.io/badge/users-11k+-brightgreen.svg)](https://microsoftedge.microsoft.com/addons/detail/bilibili%E8%A7%86%E9%A2%91%E6%96%87%E7%A8%BF%E5%8A%A9%E6%89%8B/nbgmggaolhiphnfblaognehbfhfpndol)
+[![Chrome](https://img.shields.io/badge/Chrome-商店-4285F4.svg)](https://chromewebstore.google.com/detail/bilibili%E8%A7%86%E9%A2%91%E6%96%87%E7%A8%BF%E5%8A%A9%E6%89%8B/hlkknckfgdklmcliegioejpehdnmejal)
+[![Users](https://img.shields.io/badge/users-21K-brightgreen.svg)](https://microsoftedge.microsoft.com/addons/detail/bilibili%E8%A7%86%E9%A2%91%E6%96%87%E7%A8%BF%E5%8A%A9%E6%89%8B/nbgmggaolhiphnfblaognehbfhfpndol)
 [![Stars](https://img.shields.io/github/stars/glasscatya/bilibili-video-transcript?style=social)](https://github.com/glasscatya/bilibili-video-transcript)
 
 ## 简介
@@ -46,7 +46,13 @@
 
 ### Chrome 浏览器
 
-Chrome 商店审核中，暂时需要通过以下方式手动安装：
+推荐通过 Chrome 商店一键安装：
+
+1. 打开 [**Chrome 商店页面**](https://chromewebstore.google.com/detail/bilibili%E8%A7%86%E9%A2%91%E6%96%87%E7%A8%BF%E5%8A%A9%E6%89%8B/hlkknckfgdklmcliegioejpehdnmejal)
+2. 点击 **「添加至 Chrome」** 按钮
+3. 按照提示完成安装
+
+也可以手动安装：
 
 1. 访问 [**GitHub Releases**](https://github.com/glasscatya/bilibili-video-transcript/releases/) 页面
 2. 下载对应版本的 `bilibili-video-transcript-<版本号>.zip` 并解压
