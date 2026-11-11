@@ -11,6 +11,11 @@ window.BilibiliSubtitle.isLoading = false
 window.BilibiliSubtitle.subtitleListCache = null
 window.BilibiliSubtitle.currentSubtitles = []
 
+// 字幕跟随状态：已渲染的字幕行、当前高亮行索引、是否因用户手动滚动而暂停
+window.BilibiliSubtitle._subtitleLines = []
+window.BilibiliSubtitle._followIndex = -1
+window.BilibiliSubtitle._followPaused = false
+
 // 字幕容器尺寸配置
 window.BilibiliSubtitle.SUBTITLE_CONTAINER_SIZES = {
   normal: {
@@ -187,7 +192,10 @@ window.BilibiliSubtitle.applyTheme = function() {
   const bilibiliLink = wrapper.querySelector('a[href*="bilibili"]')
   if (githubLink) githubLink.style.color = colors['--link-github']
   if (bilibiliLink) bilibiliLink.style.color = colors['--link-bilibili']
-  
+
+  // 跟随相关按钮的样式会被上面的按钮样式覆盖，重新应用
+  window.BilibiliSubtitle.renderFollowState()
+
   window.BilibiliSubtitle.logDebug(`[Theme] 已应用${isDark ? '暗色' : '亮色'}主题`)
 }
 
@@ -263,6 +271,7 @@ window.BilibiliSubtitle.renderEmptyState = function(container, stateKey) {
   const titleText = window.BilibiliSubtitle.getMessage(messages.titleKey, messages.fallbackTitle)
   const descText = window.BilibiliSubtitle.getMessage(messages.descKey, messages.fallbackDesc)
 
+  window.BilibiliSubtitle.resetFollowState()
   container.innerHTML = ''
   window.BilibiliSubtitle.applyEmptyContainerStyle(container)
 
@@ -424,6 +433,43 @@ window.BilibiliSubtitle.createUI = function() {
 
   window.BilibiliSubtitle.renderEmptyState(subtitleContainer, window.BilibiliSubtitle.EMPTY_STATES.IDLE)
 
+  // 用户在字幕区滚动或点选文字时暂停跟随，避免与用户抢滚动条（点击时间戳除外）
+  const pauseFollowOnUserInput = (event) => {
+    if (event.target.closest('.subtitle-time')) return
+    window.BilibiliSubtitle.pauseFollow()
+  }
+  subtitleContainer.addEventListener('wheel', pauseFollowOnUserInput, { passive: true })
+  subtitleContainer.addEventListener('touchstart', pauseFollowOnUserInput, { passive: true })
+  subtitleContainer.addEventListener('mousedown', pauseFollowOnUserInput)
+
+  // 跟随暂停时浮在字幕区底部的“回到当前字幕”按钮
+  // 放在字幕容器外层，避免字幕容器清空重建时被移除
+  const resumeFollowButton = document.createElement('button')
+  resumeFollowButton.className = 'followResumeButton'
+  resumeFollowButton.textContent = '回到当前字幕'
+  resumeFollowButton.style.display = 'none'
+  resumeFollowButton.style.position = 'absolute'
+  resumeFollowButton.style.left = '50%'
+  resumeFollowButton.style.bottom = '10px'
+  resumeFollowButton.style.transform = 'translateX(-50%)'
+  resumeFollowButton.style.height = '26px'
+  resumeFollowButton.style.padding = '0 12px'
+  resumeFollowButton.style.fontSize = '12px'
+  resumeFollowButton.style.fontWeight = '500'
+  resumeFollowButton.style.border = 'none'
+  resumeFollowButton.style.borderRadius = '13px'
+  resumeFollowButton.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)'
+  resumeFollowButton.style.cursor = 'pointer'
+  resumeFollowButton.style.whiteSpace = 'nowrap'
+  resumeFollowButton.onclick = () => window.BilibiliSubtitle.resumeFollow()
+
+  // 字幕区：相对定位以承载浮动按钮；折叠时一并裁掉浮动按钮
+  const subtitleArea = document.createElement('div')
+  subtitleArea.style.position = 'relative'
+  subtitleArea.style.overflow = 'hidden'
+  subtitleArea.appendChild(subtitleContainer)
+  subtitleArea.appendChild(resumeFollowButton)
+
   // === 按钮栏 ===
   const buttonBar = document.createElement('div')
   buttonBar.className = 'buttonBar'
@@ -472,12 +518,19 @@ window.BilibiliSubtitle.createUI = function() {
   addHoverEffect(copyButton)
   copyButton.onclick = () => window.BilibiliSubtitle.copySubtitlesToClipboard(null, copyButton, showTimestamp)
 
-  // 创建定位到当前视频字幕的位置按钮
-  const focusButton = document.createElement('button')
-  focusButton.textContent = '定位'
-  applyButtonStyle(focusButton)
-  addHoverEffect(focusButton)
-  focusButton.onclick = () => window.BilibiliSubtitle.focusCurrentSubtitle(null, subtitleContainer)
+  // 创建字幕跟随按钮（文字与样式由 renderFollowState 按跟随状态设置）
+  const followButton = document.createElement('button')
+  followButton.className = 'followButton'
+  applyButtonStyle(followButton)
+  addHoverEffect(followButton)
+  // 开启时为填充样式，悬停与离开需覆盖通用悬停效果
+  followButton.addEventListener('mouseenter', () => {
+    if (!window.BilibiliSubtitle.settings.autoFollow) return
+    followButton.style.backgroundColor = 'var(--accent-hover, #4fc3f7)'
+    followButton.style.borderColor = 'var(--accent-hover, #4fc3f7)'
+  })
+  followButton.addEventListener('mouseleave', () => window.BilibiliSubtitle.renderFollowState())
+  followButton.onclick = () => window.BilibiliSubtitle.toggleFollow()
 
   // 创建字幕选择下拉菜单
   const subtitleSelector = document.createElement('select')
@@ -529,7 +582,7 @@ window.BilibiliSubtitle.createUI = function() {
 
   leftGroup.appendChild(toggleTimestampButton)
   leftGroup.appendChild(copyButton)
-  leftGroup.appendChild(focusButton)
+  leftGroup.appendChild(followButton)
   leftGroup.appendChild(subtitleSelector)
   rightGroup.appendChild(toggleFoldButton)
   buttonBar.appendChild(leftGroup)
@@ -607,7 +660,7 @@ window.BilibiliSubtitle.createUI = function() {
   }
 
   wrapper.appendChild(buttonBar)
-  wrapper.appendChild(subtitleContainer)
+  wrapper.appendChild(subtitleArea)
   wrapper.appendChild(footerBar)
 
   danmukuBox.insertBefore(wrapper, danmukuBox.firstChild)
@@ -623,6 +676,12 @@ window.BilibiliSubtitle.createUI = function() {
   // 初始化主题
   window.BilibiliSubtitle.applyTheme()
   window.BilibiliSubtitle.initThemeObserver()
+
+  // 设置读取完成后按已保存的跟随状态刷新按钮
+  window.BilibiliSubtitle.settingsReady.then(() => {
+    window.BilibiliSubtitle.renderFollowState()
+    window.BilibiliSubtitle.syncFollow(true)
+  })
 
   window.BilibiliSubtitle.logInfo('[UI] 容器创建完成并已插入')
 }
@@ -640,13 +699,7 @@ window.BilibiliSubtitle.displaySubtitles = function(subtitles, emptyStateKey) {
   if (!subtitleContainer) return
 
   // 清空现有内容
-  // 先清理可能残留的高亮 timer，避免操作已不存在的 DOM
-  if (window.BilibiliSubtitle._highlightTimeout) {
-    clearTimeout(window.BilibiliSubtitle._highlightTimeout)
-    window.BilibiliSubtitle._highlightTimeout = null
-  }
-  window.BilibiliSubtitle._highlightedElements = null
-
+  window.BilibiliSubtitle.resetFollowState()
   subtitleContainer.innerHTML = ''
 
   // 添加字幕内容或空提示
@@ -665,7 +718,10 @@ window.BilibiliSubtitle.displaySubtitles = function(subtitles, emptyStateKey) {
       timeElement.style.marginRight = '14px'
       timeElement.style.cursor = 'pointer'
       timeElement.style.fontSize = '14px'
-      timeElement.onclick = () => window.BilibiliSubtitle.jumpToTime(subtitle.from)
+      timeElement.onclick = () => {
+        window.BilibiliSubtitle.jumpToTime(subtitle.from)
+        window.BilibiliSubtitle.resumeFollow()
+      }
 
       // 使用 div 替代 p，避免浏览器手动复制时在段落间插入额外空行
       const line = document.createElement('div')
@@ -675,8 +731,11 @@ window.BilibiliSubtitle.displaySubtitles = function(subtitles, emptyStateKey) {
       line.appendChild(timeElement)
       line.appendChild(document.createTextNode(subtitle.content))
       subtitleContainer.appendChild(line)
+      window.BilibiliSubtitle._subtitleLines.push(line)
     })
   }
+
+  window.BilibiliSubtitle.syncFollow(true)
 }
 
 /**
@@ -738,78 +797,137 @@ window.BilibiliSubtitle.copySubtitlesToClipboard = function(subtitles, button, s
   })
 }
 
+// ==================== 字幕跟随 ====================
+
 /**
- * 定位到当前字幕
+ * 重置跟随状态（字幕区内容被清空前调用，避免引用已不存在的字幕行）
  */
-window.BilibiliSubtitle.focusCurrentSubtitle = function(subtitles, subtitleContainer) {
+window.BilibiliSubtitle.resetFollowState = function() {
+  window.BilibiliSubtitle._subtitleLines = []
+  window.BilibiliSubtitle._followIndex = -1
+  window.BilibiliSubtitle._followPaused = false
+  window.BilibiliSubtitle.renderFollowState()
+}
+
+/**
+ * 查找当前播放时间对应的字幕行索引（最后一条已开始的字幕），未开始时返回 -1
+ */
+window.BilibiliSubtitle.findSubtitleIndex = function(subtitles, currentTime) {
+  let index = -1
+  for (let i = 0; i < subtitles.length; i++) {
+    if (subtitles[i].from > currentTime) break
+    index = i
+  }
+  return index
+}
+
+/**
+ * 按跟随状态刷新界面
+ * 跟随按钮：开启时为填充样式；“回到当前字幕”按钮：仅在跟随因手动滚动暂停时显示
+ */
+window.BilibiliSubtitle.renderFollowState = function() {
+  const wrapper = document.getElementById('bilibili-subtitle-wrapper')
+  if (!wrapper) return
+
+  const enabled = window.BilibiliSubtitle.settings.autoFollow
+
+  const button = wrapper.querySelector('.followButton')
+  if (button) {
+    button.textContent = '跟随'
+    button.style.backgroundColor = enabled ? 'var(--accent-primary, #00b8f6)' : 'var(--bg-tertiary, #ffffff)'
+    // 开启时文字用页面底色：亮色主题为白字，暗色主题为深色字，保证与强调色的对比度
+    button.style.color = enabled ? 'var(--bg-primary, #ffffff)' : 'var(--text-primary, #2f343a)'
+    button.style.borderColor = enabled ? 'var(--accent-primary, #00b8f6)' : 'var(--border-secondary, #d9dee5)'
+    button.title = enabled ? '字幕跟随视频滚动中，点击关闭' : '点击开启字幕跟随视频滚动'
+  }
+
+  const resumeButton = wrapper.querySelector('.followResumeButton')
+  if (resumeButton) {
+    const showResume = enabled
+      && window.BilibiliSubtitle._followPaused
+      && window.BilibiliSubtitle._subtitleLines.length > 0
+    resumeButton.style.display = showResume ? 'block' : 'none'
+    resumeButton.style.backgroundColor = 'var(--accent-primary, #00b8f6)'
+    resumeButton.style.color = 'var(--bg-primary, #ffffff)'
+  }
+}
+
+/**
+ * 同步高亮行与滚动位置
+ * 跟随开启时高亮当前字幕；未暂停时将其滚动到字幕区中部
+ * @param {boolean} forceScroll - 当前行未变化时也滚动（开启或恢复跟随时）
+ */
+window.BilibiliSubtitle.syncFollow = function(forceScroll) {
+  const lines = window.BilibiliSubtitle._subtitleLines
+  const previousLine = lines[window.BilibiliSubtitle._followIndex]
+
+  if (!window.BilibiliSubtitle.settings.autoFollow) {
+    if (previousLine) previousLine.style.backgroundColor = ''
+    window.BilibiliSubtitle._followIndex = -1
+    return
+  }
+
   const video = document.querySelector('video')
-  if (!video) return
+  if (!video || lines.length === 0) return
 
-  const currentTime = video.currentTime
-  if (!subtitleContainer) return
+  const index = window.BilibiliSubtitle.findSubtitleIndex(
+    window.BilibiliSubtitle.currentSubtitles,
+    video.currentTime
+  )
+  if (index === window.BilibiliSubtitle._followIndex && !forceScroll) return
 
-  const effectiveSubtitles = (subtitles && subtitles.length > 0)
-    ? subtitles
-    : (window.BilibiliSubtitle.currentSubtitles || [])
+  if (previousLine) previousLine.style.backgroundColor = ''
+  window.BilibiliSubtitle._followIndex = index
 
-  let closestSubtitle = null
-  let closestTimeDiff = Infinity
+  const line = lines[index]
+  if (!line) return
+  line.style.backgroundColor = 'var(--highlight-bg, #ffffcc)'
 
-  effectiveSubtitles.forEach(subtitle => {
-    const timeDiff = Math.abs(subtitle.from - currentTime)
-    if (timeDiff < closestTimeDiff) {
-      closestTimeDiff = timeDiff
-      closestSubtitle = subtitle
-    }
-  })
+  if (window.BilibiliSubtitle._followPaused) return
 
-  if (!closestSubtitle) return
-
-  // 1. 收集所有匹配元素
-  const subtitleElements = subtitleContainer.querySelectorAll('.subtitle-line')
-  const matchingElements = []
-
-  subtitleElements.forEach((element) => {
-    const timeElement = element.querySelector('span')
-    if (timeElement && timeElement.textContent === window.BilibiliSubtitle.formatTime(closestSubtitle.from)) {
-      matchingElements.push(element)
-    }
-  })
-
-  if (matchingElements.length === 0) return
-
-  // 2. 清理上一次高亮
-  if (window.BilibiliSubtitle._highlightTimeout) {
-    clearTimeout(window.BilibiliSubtitle._highlightTimeout)
-    window.BilibiliSubtitle._highlightTimeout = null
-  }
-  if (window.BilibiliSubtitle._highlightedElements) {
-    window.BilibiliSubtitle._highlightedElements.forEach(el => {
-      el.style.backgroundColor = ''
-    })
-  }
-
-  // 3. 只滚动一次（到第一个匹配项）
-  subtitleContainer.scrollTo({
-    top: matchingElements[0].offsetTop - (subtitleContainer.clientHeight / 2),
+  // 只滚动字幕区自身，不影响页面滚动位置
+  const container = line.parentElement
+  const offsetInContainer = line.getBoundingClientRect().top - container.getBoundingClientRect().top
+  container.scrollTo({
+    top: container.scrollTop + offsetInContainer - (container.clientHeight - line.offsetHeight) / 2,
     behavior: 'smooth'
   })
-
-  // 4. 统一高亮所有匹配项
-  matchingElements.forEach(element => {
-    element.style.backgroundColor = 'var(--highlight-bg, #ffffcc)'
-  })
-
-  // 5. 2秒后统一清除
-  window.BilibiliSubtitle._highlightedElements = matchingElements
-  window.BilibiliSubtitle._highlightTimeout = setTimeout(() => {
-    matchingElements.forEach(element => {
-      element.style.backgroundColor = ''
-    })
-    window.BilibiliSubtitle._highlightTimeout = null
-    window.BilibiliSubtitle._highlightedElements = null
-  }, 2000)
 }
+
+/**
+ * 点击跟随按钮：开启 ⇄ 关闭
+ */
+window.BilibiliSubtitle.toggleFollow = function() {
+  window.BilibiliSubtitle._followPaused = false
+  window.BilibiliSubtitle.saveSetting('autoFollow', !window.BilibiliSubtitle.settings.autoFollow)
+  window.BilibiliSubtitle.renderFollowState()
+  window.BilibiliSubtitle.syncFollow(true)
+}
+
+/**
+ * 用户手动滚动时暂停跟随：仍高亮当前行，不再自动滚动，并显示“回到当前字幕”按钮
+ */
+window.BilibiliSubtitle.pauseFollow = function() {
+  if (!window.BilibiliSubtitle.settings.autoFollow || window.BilibiliSubtitle._followPaused) return
+  window.BilibiliSubtitle._followPaused = true
+  window.BilibiliSubtitle.renderFollowState()
+}
+
+/**
+ * 恢复跟随并立即滚动到当前字幕
+ */
+window.BilibiliSubtitle.resumeFollow = function() {
+  if (!window.BilibiliSubtitle.settings.autoFollow) return
+  window.BilibiliSubtitle._followPaused = false
+  window.BilibiliSubtitle.renderFollowState()
+  window.BilibiliSubtitle.syncFollow(true)
+}
+
+// timeupdate 不冒泡，在捕获阶段统一监听，B站切换视频重建 video 元素后无需重新绑定
+document.addEventListener('timeupdate', (event) => {
+  if (event.target !== document.querySelector('video')) return
+  window.BilibiliSubtitle.syncFollow(false)
+}, true)
 
 /**
  * 折叠/展开字幕容器

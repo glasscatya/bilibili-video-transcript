@@ -4,6 +4,7 @@
 
 - [ ] `manifest.json` 版本号已提升且未使用
 - [ ] 没有 `webRequest`、`activeTab`、`tabs`、`webNavigation`、`scripting`
+- [ ] 扩展 API 权限仅 `storage`（用于保存界面偏好）
 - [ ] 没有 `<all_urls>` 或其他不必要的 host permission
 - [ ] Manifest 引用文件全部存在
 - [ ] 生产包日志级别为 `WARN`
@@ -16,6 +17,7 @@
 - [ ] 稍后再看
 - [ ] 字幕切换
 - [ ] 时间跳转
+- [ ] 字幕跟随开关、手动滚动暂停与“回到当前字幕”、刷新后保持开关状态
 - [ ] 带时间戳复制
 - [ ] 纯文本复制
 - [ ] 无字幕状态
